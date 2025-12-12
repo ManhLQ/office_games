@@ -12,6 +12,7 @@ import { clearActivePowerup } from '../../services/powerupService';
 import { getHintCell } from '../../utils/powerupEffects';
 import type { Players, PowerupInventory, SharedPowerupPool } from '../../types';
 import { PowerupButton } from './PowerupButton';
+import { MiniBoard } from './MiniBoard';
 
 interface PlayerBoardProps {
     puzzleString: string;
@@ -314,63 +315,41 @@ export const PlayerBoard: React.FC<PlayerBoardProps> = React.memo(
 
                 {/* Competitors Panel */}
                 {competitors.length > 0 && (() => {
-                    // Check if any competitor has Fog active (hiding this player's view)
-                    const activeFog = competitors.find(comp => {
-                        const fog = comp.powerups?.activePowerup;
-                        if (fog?.type === 'fog') {
-                            const elapsed = Date.now() - fog.startedAt;
-                            return elapsed < fog.durationMs; // Still active
-                        }
-                        return false;
-                    });
-
                     // Check if current player has Peep active (revealing competitors)
                     const hasPeep = activePowerup?.type === 'peep' &&
                         (Date.now() - (activePowerup?.startedAt || 0)) < (activePowerup?.durationMs || 0);
 
-                    // Chronological precedence: if Fog started before Peep, Fog wins
-                    const isFogged = activeFog && (!hasPeep ||
-                        (activeFog.powerups?.activePowerup?.startedAt || 0) < (activePowerup?.startedAt || 0));
-
-                    if (isFogged) {
-                        // Show fogged overlay
+                    if (hasPeep) {
+                        // Show actual mini boards of competitors when Peep is active
                         return (
-                            <div className="bg-white/90 backdrop-blur-sm px-4 py-3 rounded-lg shadow-lg w-full max-w-md relative overflow-hidden">
-                                <div className="text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">
-                                    🏁 Competitors
-                                </div>
-                                <div className="relative">
-                                    {/* Blurred background */}
-                                    <div className="blur-xl opacity-30">
-                                        {competitors.map((competitor) => (
-                                            <div key={competitor.id} className="flex items-center gap-2 mb-2">
-                                                <div className="flex-1">
-                                                    <div className="text-sm font-semibold text-gray-700">
-                                                        {competitor.name}
-                                                    </div>
-                                                    <div className="w-full h-2 bg-gray-200 rounded-full" />
-                                                </div>
-                                            </div>
-                                        ))}
+                            <div className="w-full max-w-6xl">
+                                <div className="ring-4 ring-blue-400 animate-pulse bg-white/90 backdrop-blur-sm px-4 py-3 rounded-lg shadow-lg">
+                                    <div className="text-xs font-bold text-gray-500 mb-3 uppercase tracking-wide">
+                                        👀 Peeking at Competitors
                                     </div>
-                                    {/* Fog overlay */}
-                                    <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-gray-300/80 to-gray-400/80 backdrop-blur-md rounded-lg">
-                                        <div className="text-center">
-                                            <div className="text-4xl mb-2 animate-pulse">🌫️</div>
-                                            <div className="text-lg font-black text-gray-700">FOGGED!</div>
-                                            <div className="text-xs text-gray-600">Competitor obscured your view</div>
-                                        </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                        {competitors.map((competitor) => (
+                                            <MiniBoard
+                                                key={competitor.id}
+                                                playerName={competitor.name}
+                                                puzzleString={puzzleString}
+                                                liveInput={competitor.currentBoardString || puzzleString}
+                                                solutionString={solutionString}
+                                                showErrors={false}
+                                                completionPercentage={competitor.completionPercentage}
+                                            />
+                                        ))}
                                     </div>
                                 </div>
                             </div>
                         );
                     }
 
-                    // Normal or Peep view
+                    // Normal view: show compact progress bars
                     return (
-                        <div className={`${hasPeep ? 'ring-4 ring-blue-400 animate-pulse' : ''} bg-white/90 backdrop-blur-sm px-4 py-3 rounded-lg shadow-lg w-full max-w-md`}>
+                        <div className="bg-white/90 backdrop-blur-sm px-4 py-3 rounded-lg shadow-lg w-full max-w-md">
                             <div className="text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">
-                                {hasPeep ? '👀 Peeking at Competitors' : '🏁 Competitors'}
+                                🏁 Competitors
                             </div>
                             <div className="space-y-2">
                                 {competitors.map((competitor) => (
@@ -397,33 +376,34 @@ export const PlayerBoard: React.FC<PlayerBoardProps> = React.memo(
                 })()}
 
                 {/* 9x9 Grid */}
-                <div className="grid grid-cols-9 gap-0 border-2 border-gray-800 bg-white">
-                    {userGrid.map((row, rowIndex) =>
-                        row.map((cell, colIndex) => {
-                            const isEditable = isCellEditable(puzzleString, rowIndex, colIndex);
-                            const isSelected =
-                                selectedCell?.row === rowIndex && selectedCell?.col === colIndex;
-                            const isHoveredRow = hoveredCell?.row === rowIndex;
-                            const isHoveredCol = hoveredCell?.col === colIndex;
-                            const isHighlighted = highlightedNumber !== null && cell === highlightedNumber;
-                            const borderRight = (colIndex + 1) % 3 === 0 && colIndex < 8;
-                            const borderBottom = (rowIndex + 1) % 3 === 0 && rowIndex < 8;
-                            const isHintCell = hintCell && hintCell.row === rowIndex && hintCell.col === colIndex;
+                <div className="relative inline-block">
+                    <div className="grid grid-cols-9 gap-0 border-2 border-gray-800 bg-white">
+                        {userGrid.map((row, rowIndex) =>
+                            row.map((cell, colIndex) => {
+                                const isEditable = isCellEditable(puzzleString, rowIndex, colIndex);
+                                const isSelected =
+                                    selectedCell?.row === rowIndex && selectedCell?.col === colIndex;
+                                const isHoveredRow = hoveredCell?.row === rowIndex;
+                                const isHoveredCol = hoveredCell?.col === colIndex;
+                                const isHighlighted = highlightedNumber !== null && cell === highlightedNumber;
+                                const borderRight = (colIndex + 1) % 3 === 0 && colIndex < 8;
+                                const borderBottom = (rowIndex + 1) % 3 === 0 && rowIndex < 8;
+                                const isHintCell = hintCell && hintCell.row === rowIndex && hintCell.col === colIndex;
 
-                            // Determine background color priority
-                            let bgColor = isEditable ? 'bg-gray-50' : 'bg-white';
-                            if (isHoveredRow || isHoveredCol) bgColor = 'bg-yellow-50';
-                            if (isHighlighted) bgColor = 'bg-purple-100';
-                            if (isHintCell) bgColor = 'bg-green-200';
-                            if (isSelected) bgColor = 'bg-blue-200';
+                                // Determine background color priority
+                                let bgColor = isEditable ? 'bg-gray-50' : 'bg-white';
+                                if (isHoveredRow || isHoveredCol) bgColor = 'bg-yellow-50';
+                                if (isHighlighted) bgColor = 'bg-purple-100';
+                                if (isHintCell) bgColor = 'bg-green-200';
+                                if (isSelected) bgColor = 'bg-blue-200';
 
-                            return (
-                                <div
-                                    key={`${rowIndex}-${colIndex}`}
-                                    onClick={() => handleCellClick(rowIndex, colIndex)}
-                                    onMouseEnter={() => setHoveredCell({ row: rowIndex, col: colIndex })}
-                                    onMouseLeave={() => setHoveredCell(null)}
-                                    className={`
+                                return (
+                                    <div
+                                        key={`${rowIndex}-${colIndex}`}
+                                        onClick={() => handleCellClick(rowIndex, colIndex)}
+                                        onMouseEnter={() => setHoveredCell({ row: rowIndex, col: colIndex })}
+                                        onMouseLeave={() => setHoveredCell(null)}
+                                        className={`
                     w-10 h-10 md:w-12 md:h-12 flex items-center justify-center
                     text-lg md:text-xl font-semibold cursor-pointer
                     border border-gray-300
@@ -433,16 +413,105 @@ export const PlayerBoard: React.FC<PlayerBoardProps> = React.memo(
                     ${bgColor}
                     transition-colors duration-100
                   `}
-                                >
-                                    {cell !== 0 ? cell : isHintCell && hintCell ? (
-                                        <span className="text-green-600 font-black animate-pulse">
-                                            {hintCell.value}
-                                        </span>
-                                    ) : ''}
+                                    >
+                                        {cell !== 0 ? cell : isHintCell && hintCell ? (
+                                            <span className="text-green-600 font-black animate-pulse">
+                                                {hintCell.value}
+                                            </span>
+                                        ) : ''}
+                                    </div>
+                                );
+                            })
+                        )}
+                    </div>
+
+                    {/* Fog Overlay on Main Board */}
+                    {(() => {
+                        // Check if any competitor has Fog active (hiding this player's board)
+                        const activeFog = competitors.find(comp => {
+                            const fog = comp.powerups?.activePowerup;
+                            if (fog?.type === 'fog') {
+                                const elapsed = Date.now() - fog.startedAt;
+                                return elapsed < fog.durationMs; // Still active
+                            }
+                            return false;
+                        });
+
+                        if (activeFog) {
+                            return (
+                                <div className="absolute top-0 left-0 right-0 bottom-0 overflow-hidden border-2 border-gray-800 z-10 pointer-events-none">
+                                    {/* Layered fog effect with multiple animated clouds */}
+                                    <div
+                                        className="absolute inset-0 opacity-40"
+                                        style={{
+                                            background: 'radial-gradient(circle at 20% 30%, rgba(200, 210, 220, 0.9) 0%, transparent 50%), radial-gradient(circle at 80% 70%, rgba(180, 190, 200, 0.8) 0%, transparent 50%)',
+                                            animation: 'fog-drift-1 8s ease-in-out infinite alternate'
+                                        }}
+                                    />
+                                    <div
+                                        className="absolute inset-0 opacity-50"
+                                        style={{
+                                            background: 'radial-gradient(circle at 60% 40%, rgba(220, 225, 230, 0.85) 0%, transparent 50%), radial-gradient(circle at 30% 80%, rgba(190, 200, 210, 0.75) 0%, transparent 50%)',
+                                            animation: 'fog-drift-2 10s ease-in-out infinite alternate-reverse'
+                                        }}
+                                    />
+                                    <div
+                                        className="absolute inset-0 opacity-60"
+                                        style={{
+                                            background: 'radial-gradient(circle at 50% 50%, rgba(210, 215, 220, 0.9) 0%, transparent 60%)',
+                                            animation: 'fog-pulse 6s ease-in-out infinite'
+                                        }}
+                                    />
+
+                                    {/* Backdrop blur and gradient overlay */}
+                                    <div className="absolute inset-0 backdrop-blur-xl bg-gradient-to-br from-gray-200/60 via-gray-300/50 to-gray-400/60" />
+
+                                    {/* Center content */}
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                        <div className="text-center drop-shadow-2xl">
+                                            <div
+                                                className="text-7xl mb-4"
+                                                style={{
+                                                    animation: 'fog-float 3s ease-in-out infinite',
+                                                    filter: 'drop-shadow(0 0 20px rgba(255,255,255,0.8))'
+                                                }}
+                                            >
+                                                🌫️
+                                            </div>
+                                            <div className="text-3xl font-black text-gray-800 mb-2 tracking-wide" style={{ textShadow: '2px 2px 4px rgba(255,255,255,0.8)' }}>
+                                                FOGGED!
+                                            </div>
+                                            <div className="text-base text-gray-700 font-semibold" style={{ textShadow: '1px 1px 2px rgba(255,255,255,0.6)' }}>
+                                                Competitor obscured your view
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* CSS animations injected via style tag */}
+                                    <style dangerouslySetInnerHTML={{
+                                        __html: `
+                                    @keyframes fog-drift-1 {
+                                        0%, 100% { transform: translate(0, 0) scale(1); }
+                                        50% { transform: translate(10px, -10px) scale(1.1); }
+                                    }
+                                    @keyframes fog-drift-2 {
+                                        0%, 100% { transform: translate(0, 0) scale(1); }
+                                        50% { transform: translate(-15px, 10px) scale(1.15); }
+                                    }
+                                    @keyframes fog-pulse {
+                                        0%, 100% { opacity: 0.6; transform: scale(1); }
+                                        50% { opacity: 0.8; transform: scale(1.05); }
+                                    }
+                                    @keyframes fog-float {
+                                        0%, 100% { transform: translateY(0px); }
+                                        50% { transform: translateY(-10px); }
+                                    }
+                                `}} />
                                 </div>
                             );
-                        })
-                    )}
+                        }
+                        return null;
+                    })()}
                 </div>
 
                 {/* Number Pad */}
