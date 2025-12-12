@@ -1,15 +1,20 @@
 import { ref, set, update, get } from 'firebase/database';
 import { database } from '../config/firebase';
-import type { Room, RoomConfig, Player, RoomStatus, Difficulty } from '../types';
+import type { Room, RoomConfig, Player, RoomStatus, Difficulty, PowerupConfig } from '../types';
 import { generateBoard } from '../utils/sudoku';
 import { generateRoomCode, generatePlayerId } from '../utils/room';
+import { allocatePowerups, createEmptyInventory } from './powerupService';
 
 /**
  * Creates a new game room
  * @param difficulty - The difficulty level for the puzzle
+ * @param powerupConfig - Optional powerup configuration
  * @returns The room code and admin player ID
  */
-export async function createRoom(difficulty: Difficulty): Promise<{
+export async function createRoom(
+  difficulty: Difficulty,
+  powerupConfig?: PowerupConfig
+): Promise<{
   roomCode: string;
   adminId: string;
 }> {
@@ -23,11 +28,20 @@ export async function createRoom(difficulty: Difficulty): Promise<{
       difficulty,
       puzzleString,
       solutionString,
+      powerupConfig,
     },
     winnerId: null,
     players: {},
     startTime: null,
   };
+
+  // Initialize shared powerup pool if using global modes
+  if (powerupConfig?.enabled && (powerupConfig.mode === 'random' || powerupConfig.mode === 'fixed')) {
+    const { sharedPool } = allocatePowerups(powerupConfig, []);
+    if (sharedPool) {
+      roomData.sharedPowerupPool = sharedPool;
+    }
+  }
 
   const roomRef = ref(database, `rooms/${roomCode}`);
   await set(roomRef, roomData);
@@ -72,6 +86,18 @@ export async function joinRoom(
     status: 'playing',
     completionPercentage: 0,
   };
+
+  // Initialize powerup inventory if powerups are enabled
+  const powerupConfig = room.config.powerupConfig;
+  if (powerupConfig?.enabled) {
+    const allPlayerIds = [...Object.keys(room.players || {}), playerId];
+    const { playerInventories } = allocatePowerups(powerupConfig, allPlayerIds);
+    
+    playerData.powerups = {
+      inventory: playerInventories[playerId] || createEmptyInventory(),
+      activePowerup: null,
+    };
+  }
 
   const playerRef = ref(database, `rooms/${roomCode}/players/${playerId}`);
   await set(playerRef, playerData);

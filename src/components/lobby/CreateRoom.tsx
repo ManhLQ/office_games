@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import type { Difficulty } from '../../types';
+import type { Difficulty, PowerupConfig, PowerupType } from '../../types';
 import { createRoom } from '../../services/roomService';
 
 interface CreateRoomProps {
@@ -14,12 +14,32 @@ export const CreateRoom: React.FC<CreateRoomProps> = ({ onRoomCreated }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    // Powerup configuration state
+    const [powerupsEnabled, setPowerupsEnabled] = useState(false);
+    const [powerupMode, setPowerupMode] = useState<PowerupConfig['mode']>('fixed_per_player');
+    const [maxPowerups, setMaxPowerups] = useState(3);
+    const [selectedPowerups, setSelectedPowerups] = useState<PowerupType[]>([]);
+
     const handleCreateRoom = async () => {
         setIsLoading(true);
         setError(null);
 
         try {
-            const { roomCode, adminId } = await createRoom(difficulty);
+            let powerupConfig: PowerupConfig | undefined;
+
+            if (powerupsEnabled) {
+                powerupConfig = {
+                    enabled: true,
+                    mode: powerupMode,
+                    maxPowerupsPerEntity: maxPowerups,
+                    perTypeMax: 2,
+                    ...(powerupMode === 'fixed' || powerupMode === 'fixed_per_player'
+                        ? { fixedList: selectedPowerups }
+                        : { pool: ['hint', 'fog', 'peep'] }),
+                };
+            }
+
+            const { roomCode, adminId } = await createRoom(difficulty, powerupConfig);
             onRoomCreated(roomCode, adminId);
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to create room');
@@ -36,7 +56,7 @@ export const CreateRoom: React.FC<CreateRoomProps> = ({ onRoomCreated }) => {
     ];
 
     return (
-        <div className="max-w-md w-full mx-auto p-8 bg-gradient-to-br from-white via-pink-50 to-purple-50 rounded-3xl shadow-2xl border-4 border-pink-300">
+        <div className="max-w-2xl w-full mx-auto p-8 bg-gradient-to-br from-white via-pink-50 to-purple-50 rounded-3xl shadow-2xl border-4 border-pink-300 max-h-[90vh] overflow-y-auto">
             <div className="text-center mb-6">
                 <div className="text-5xl mb-3">🎮✨</div>
                 <h2 className="text-4xl font-black bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
@@ -68,12 +88,126 @@ export const CreateRoom: React.FC<CreateRoomProps> = ({ onRoomCreated }) => {
                 </div>
             </div>
 
+            {/* Powerup Configuration */}
+            <div className="mb-6">
+                <label className="flex items-center gap-2 mb-4 cursor-pointer">
+                    <input
+                        type="checkbox"
+                        checked={powerupsEnabled}
+                        onChange={(e) => setPowerupsEnabled(e.target.checked)}
+                        className="w-5 h-5 rounded accent-purple-600"
+                    />
+                    <span className="text-lg font-black text-gray-700">
+                        ⚡ Enable Powerups
+                    </span>
+                </label>
+
+                {powerupsEnabled && (
+                    <div className="space-y-4 pl-2 border-l-4 border-purple-300">
+                        <div className="text-xs text-gray-500 italic">
+                            Each player will get their own powerups (not shared)
+                        </div>
+
+                        {/* Max Powerups */}
+                        <div>
+                            <div className="text-sm font-bold text-gray-600 mb-2">
+                                Powerups per Player: {maxPowerups}
+                            </div>
+                            <input
+                                type="range"
+                                min="1"
+                                max="5"
+                                value={maxPowerups}
+                                onChange={(e) => setMaxPowerups(parseInt(e.target.value))}
+                                className="w-full accent-purple-600"
+                            />
+                        </div>
+
+                        {/* Powerup Selection (for fixed modes) */}
+                        {(powerupMode === 'fixed' || powerupMode === 'fixed_per_player') && (
+                            <div>
+                                <div className="text-sm font-bold text-gray-600 mb-2">
+                                    Select Powerups ({selectedPowerups.length}/{maxPowerups})
+                                </div>
+                                <div className="space-y-3">
+                                    {(['hint', 'fog', 'peep'] as PowerupType[]).map((type) => {
+                                        const count = selectedPowerups.filter((p) => p === type).length;
+                                        const icons = { hint: '💡', fog: '🌫️', peep: '👀' };
+                                        const names = { hint: 'Hint', fog: 'Fog', peep: 'Peep' };
+                                        const colors = {
+                                            hint: 'from-yellow-400 to-orange-500',
+                                            fog: 'from-gray-400 to-gray-600',
+                                            peep: 'from-blue-400 to-purple-500',
+                                        };
+
+                                        const handleCountChange = (newCount: number) => {
+                                            // Remove all instances of this type
+                                            const withoutType = selectedPowerups.filter((p) => p !== type);
+                                            // Add the new count
+                                            const newSelection = [...withoutType, ...Array(newCount).fill(type)];
+
+                                            // Only update if within total limit
+                                            if (newSelection.length <= maxPowerups) {
+                                                setSelectedPowerups(newSelection);
+                                            }
+                                        };
+
+                                        return (
+                                            <div
+                                                key={type}
+                                                className={`
+                                                    flex items-center gap-3 p-3 rounded-lg border-2 transition-all
+                                                    ${count > 0 ? 'border-purple-400 bg-purple-50' : 'border-gray-300 bg-white'}
+                                                `}
+                                            >
+                                                {/* Powerup Icon & Name */}
+                                                <div className={`
+                                                    flex items-center gap-2 flex-1 px-3 py-2 rounded-lg text-white font-bold
+                                                    bg-gradient-to-r ${colors[type]}
+                                                `}>
+                                                    <span className="text-2xl">{icons[type]}</span>
+                                                    <span className="text-sm">{names[type]}</span>
+                                                </div>
+
+                                                {/* Number Input */}
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    max="2"
+                                                    value={count}
+                                                    onChange={(e) => {
+                                                        const newCount = Math.max(0, Math.min(2, parseInt(e.target.value) || 0));
+                                                        handleCountChange(newCount);
+                                                    }}
+                                                    className="w-16 px-3 py-2 text-center text-lg font-bold border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-300"
+                                                />
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                                {selectedPowerups.length > 0 && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setSelectedPowerups([])}
+                                        className="mt-3 text-sm text-red-600 hover:text-red-700 font-semibold"
+                                    >
+                                        Clear All
+                                    </button>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
+
             {/* Error Message */}
-            {error && (
-                <div className="mb-4 p-4 bg-red-100 border-2 border-red-400 text-red-700 rounded-xl font-bold">
-                    ⚠️ {error}
-                </div>
-            )}
+            {
+                error && (
+                    <div className="mb-4 p-4 bg-red-100 border-2 border-red-400 text-red-700 rounded-xl font-bold">
+                        ⚠️ {error}
+                    </div>
+                )
+            }
 
             {/* Create Button */}
             <button
@@ -103,7 +237,7 @@ export const CreateRoom: React.FC<CreateRoomProps> = ({ onRoomCreated }) => {
                     </span>
                 )}
             </button>
-        </div>
+        </div >
     );
 };
 

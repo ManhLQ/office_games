@@ -12,7 +12,11 @@ interface JoinRoomProps {
  */
 export const JoinRoom: React.FC<JoinRoomProps> = ({ onRoomJoined, initialRoomCode = '' }) => {
     const [roomCode, setRoomCode] = useState(initialRoomCode);
-    const [playerName, setPlayerName] = useState('');
+    // Generate random player name on mount
+    const [playerName, setPlayerName] = useState(() => {
+        const randomNum = Math.floor(Math.random() * 999) + 1;
+        return `Player ${randomNum}`;
+    });
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 

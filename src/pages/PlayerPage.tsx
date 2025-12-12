@@ -188,6 +188,12 @@ export const PlayerPage = () => {
     const initialBoard = player?.currentBoardString || room.config.puzzleString;
     const gameStartTime = room.startTime || Date.now();
 
+    // Extract powerup data
+    const powerupConfig = room.config.powerupConfig;
+    const isGlobalMode = powerupConfig?.enabled && (powerupConfig.mode === 'random' || powerupConfig.mode === 'fixed');
+    const powerupInventory = player?.powerups?.inventory;
+    const sharedPowerupPool = room.sharedPowerupPool;
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-orange-300 via-pink-400 to-purple-500 py-6 px-4">
             {/* Header */}
@@ -211,6 +217,9 @@ export const PlayerPage = () => {
                 playerName={playerName}
                 players={room.players || {}}
                 gameStartTime={gameStartTime}
+                powerupInventory={powerupInventory}
+                sharedPowerupPool={sharedPowerupPool}
+                isGlobalMode={isGlobalMode || false}
                 onGameEnd={handleGameEnd}
             />
         </div>

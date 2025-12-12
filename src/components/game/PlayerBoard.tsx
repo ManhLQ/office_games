@@ -8,7 +8,10 @@ import {
     getCompletionPercentage,
 } from '../../utils/sudoku';
 import { updatePlayerBoard, submitAnswer, updatePlayerCompletion } from '../../services/roomService';
-import type { Players } from '../../types';
+import { clearActivePowerup } from '../../services/powerupService';
+import { getHintCell } from '../../utils/powerupEffects';
+import type { Players, PowerupInventory, SharedPowerupPool } from '../../types';
+import { PowerupButton } from './PowerupButton';
 
 interface PlayerBoardProps {
     puzzleString: string;
@@ -19,6 +22,9 @@ interface PlayerBoardProps {
     playerName: string;
     players: Players;
     gameStartTime: number; // timestamp when game started
+    powerupInventory?: PowerupInventory;
+    sharedPowerupPool?: SharedPowerupPool;
+    isGlobalMode?: boolean;
     onGameEnd: (isWinner: boolean, score: number) => void;
 }
 
@@ -40,9 +46,11 @@ export const PlayerBoard: React.FC<PlayerBoardProps> = React.memo(
         initialBoard,
         roomCode,
         playerId,
-        playerName,
         players,
         gameStartTime,
+        powerupInventory,
+        sharedPowerupPool,
+        isGlobalMode = false,
         onGameEnd,
     }) => {
         const [userGrid, setUserGrid] = useState<number[][]>(() =>
@@ -59,6 +67,7 @@ export const PlayerBoard: React.FC<PlayerBoardProps> = React.memo(
         const [highlightedNumber, setHighlightedNumber] = useState<number | null>(null);
         const [elapsedTime, setElapsedTime] = useState(0);
         const [currentCompletion, setCurrentCompletion] = useState(0);
+        const [hintCell, setHintCell] = useState<{ row: number; col: number; value: number } | null>(null);
 
         // Timer effect
         React.useEffect(() => {
@@ -88,6 +97,57 @@ export const PlayerBoard: React.FC<PlayerBoardProps> = React.memo(
             const interval = setInterval(updateCompletion, 5000);
             return () => clearInterval(interval);
         }, [userGrid, puzzleString, solutionString, roomCode, playerId]);
+
+        // Monitor active powerup and apply effects
+        const player = players[playerId];
+        const activePowerup = player?.powerups?.activePowerup;
+
+        React.useEffect(() => {
+            if (!activePowerup) {
+                setHintCell(null);
+                return;
+            }
+
+            // Handle hint powerup
+            if (activePowerup.type === 'hint') {
+                // Get hint cell, preferring selected cell if available
+                const hint = getHintCell(
+                    gridToString(userGrid),
+                    solutionString,
+                    selectedCell || undefined
+                );
+                setHintCell(hint);
+
+                // Auto-clear after 30 seconds as fallback
+                const timeout = setTimeout(() => {
+                    clearActivePowerup(roomCode, playerId);
+                    setHintCell(null);
+                }, 30000);
+
+                return () => clearTimeout(timeout);
+            }
+
+            // Auto-clear powerup after duration for Fog/Peep
+            if (activePowerup.type === 'fog' || activePowerup.type === 'peep') {
+                const timeLeft = activePowerup.durationMs - (Date.now() - activePowerup.startedAt);
+                if (timeLeft > 0) {
+                    const timeout = setTimeout(() => {
+                        clearActivePowerup(roomCode, playerId);
+                    }, timeLeft);
+
+                    return () => clearTimeout(timeout);
+                }
+            }
+        }, [activePowerup, roomCode, playerId, solutionString, selectedCell]);
+
+        // Clear hint when the hinted cell is filled
+        React.useEffect(() => {
+            if (hintCell && userGrid[hintCell.row][hintCell.col] !== 0) {
+                // User filled the hinted cell, clear the hint and active powerup
+                clearActivePowerup(roomCode, playerId);
+                setHintCell(null);
+            }
+        }, [userGrid, hintCell, roomCode, playerId]);
 
         // Format time as MM:SS
         const formatTime = (seconds: number): string => {
@@ -218,7 +278,7 @@ export const PlayerBoard: React.FC<PlayerBoardProps> = React.memo(
                 onKeyDown={handleKeyDown}
                 tabIndex={0}
             >
-                {/* Timer and Completion */}
+                {/* Timer, Completion, and Powerups */}
                 <div className="flex gap-4 items-center flex-wrap justify-center">
                     <div className="text-3xl font-mono font-bold text-white bg-gray-800 px-6 py-2 rounded-lg">
                         ⏱️ {formatTime(elapsedTime)}
@@ -239,6 +299,17 @@ export const PlayerBoard: React.FC<PlayerBoardProps> = React.memo(
                             </span>
                         </div>
                     </div>
+                    {/* Powerup Button */}
+                    {powerupInventory && (
+                        <PowerupButton
+                            roomCode={roomCode}
+                            playerId={playerId}
+                            inventory={powerupInventory}
+                            activePowerup={activePowerup || null}
+                            isGlobalMode={isGlobalMode}
+                            sharedPoolInventory={sharedPowerupPool?.inventory}
+                        />
+                    )}
                 </div>
 
                 {/* Competitors Panel */}
@@ -282,11 +353,13 @@ export const PlayerBoard: React.FC<PlayerBoardProps> = React.memo(
                             const isHighlighted = highlightedNumber !== null && cell === highlightedNumber;
                             const borderRight = (colIndex + 1) % 3 === 0 && colIndex < 8;
                             const borderBottom = (rowIndex + 1) % 3 === 0 && rowIndex < 8;
+                            const isHintCell = hintCell && hintCell.row === rowIndex && hintCell.col === colIndex;
 
                             // Determine background color priority
                             let bgColor = isEditable ? 'bg-gray-50' : 'bg-white';
                             if (isHoveredRow || isHoveredCol) bgColor = 'bg-yellow-50';
                             if (isHighlighted) bgColor = 'bg-purple-100';
+                            if (isHintCell) bgColor = 'bg-green-200';
                             if (isSelected) bgColor = 'bg-blue-200';
 
                             return (
@@ -306,7 +379,11 @@ export const PlayerBoard: React.FC<PlayerBoardProps> = React.memo(
                     transition-colors duration-100
                   `}
                                 >
-                                    {cell !== 0 ? cell : ''}
+                                    {cell !== 0 ? cell : isHintCell && hintCell ? (
+                                        <span className="text-green-600 font-black animate-pulse">
+                                            {hintCell.value}
+                                        </span>
+                                    ) : ''}
                                 </div>
                             );
                         })
