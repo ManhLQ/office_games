@@ -16,7 +16,7 @@ export const CreateRoom: React.FC<CreateRoomProps> = ({ onRoomCreated }) => {
 
     // Powerup configuration state
     const [powerupsEnabled, setPowerupsEnabled] = useState(false);
-    const [powerupMode, setPowerupMode] = useState<PowerupConfig['mode']>('fixed_per_player');
+    const powerupMode: PowerupConfig['mode'] = 'fixed_per_player'; // Always per-player mode
     const [maxPowerups, setMaxPowerups] = useState(3);
     const [selectedPowerups, setSelectedPowerups] = useState<PowerupType[]>([]);
 
@@ -33,9 +33,7 @@ export const CreateRoom: React.FC<CreateRoomProps> = ({ onRoomCreated }) => {
                     mode: powerupMode,
                     maxPowerupsPerEntity: maxPowerups,
                     perTypeMax: 2,
-                    ...(powerupMode === 'fixed' || powerupMode === 'fixed_per_player'
-                        ? { fixedList: selectedPowerups }
-                        : { pool: ['hint', 'fog', 'peep'] }),
+                    fixedList: selectedPowerups,
                 };
             }
 
@@ -123,79 +121,77 @@ export const CreateRoom: React.FC<CreateRoomProps> = ({ onRoomCreated }) => {
                             />
                         </div>
 
-                        {/* Powerup Selection (for fixed modes) */}
-                        {(powerupMode === 'fixed' || powerupMode === 'fixed_per_player') && (
-                            <div>
-                                <div className="text-sm font-bold text-gray-600 mb-2">
-                                    Select Powerups ({selectedPowerups.length}/{maxPowerups})
-                                </div>
-                                <div className="space-y-3">
-                                    {(['hint', 'fog', 'peep'] as PowerupType[]).map((type) => {
-                                        const count = selectedPowerups.filter((p) => p === type).length;
-                                        const icons = { hint: '💡', fog: '🌫️', peep: '👀' };
-                                        const names = { hint: 'Hint', fog: 'Fog', peep: 'Peep' };
-                                        const colors = {
-                                            hint: 'from-yellow-400 to-orange-500',
-                                            fog: 'from-gray-400 to-gray-600',
-                                            peep: 'from-blue-400 to-purple-500',
-                                        };
+                        {/* Powerup Selection */}
+                        <div>
+                            <div className="text-sm font-bold text-gray-600 mb-2">
+                                Select Powerups ({selectedPowerups.length}/{maxPowerups})
+                            </div>
+                            <div className="space-y-3">
+                                {(['hint', 'fog', 'peep'] as PowerupType[]).map((type) => {
+                                    const count = selectedPowerups.filter((p) => p === type).length;
+                                    const icons = { hint: '💡', fog: '🌫️', peep: '👀' };
+                                    const names = { hint: 'Hint', fog: 'Fog', peep: 'Peep' };
+                                    const colors = {
+                                        hint: 'from-yellow-400 to-orange-500',
+                                        fog: 'from-gray-400 to-gray-600',
+                                        peep: 'from-blue-400 to-purple-500',
+                                    };
 
-                                        const handleCountChange = (newCount: number) => {
-                                            // Remove all instances of this type
-                                            const withoutType = selectedPowerups.filter((p) => p !== type);
-                                            // Add the new count
-                                            const newSelection = [...withoutType, ...Array(newCount).fill(type)];
+                                    const handleCountChange = (newCount: number) => {
+                                        // Remove all instances of this type
+                                        const withoutType = selectedPowerups.filter((p) => p !== type);
+                                        // Add the new count
+                                        const newSelection = [...withoutType, ...Array(newCount).fill(type)];
 
-                                            // Only update if within total limit
-                                            if (newSelection.length <= maxPowerups) {
-                                                setSelectedPowerups(newSelection);
-                                            }
-                                        };
+                                        // Only update if within total limit
+                                        if (newSelection.length <= maxPowerups) {
+                                            setSelectedPowerups(newSelection);
+                                        }
+                                    };
 
-                                        return (
-                                            <div
-                                                key={type}
-                                                className={`
+                                    return (
+                                        <div
+                                            key={type}
+                                            className={`
                                                     flex items-center gap-3 p-3 rounded-lg border-2 transition-all
                                                     ${count > 0 ? 'border-purple-400 bg-purple-50' : 'border-gray-300 bg-white'}
                                                 `}
-                                            >
-                                                {/* Powerup Icon & Name */}
-                                                <div className={`
+                                        >
+                                            {/* Powerup Icon & Name */}
+                                            <div className={`
                                                     flex items-center gap-2 flex-1 px-3 py-2 rounded-lg text-white font-bold
                                                     bg-gradient-to-r ${colors[type]}
                                                 `}>
-                                                    <span className="text-2xl">{icons[type]}</span>
-                                                    <span className="text-sm">{names[type]}</span>
-                                                </div>
-
-                                                {/* Number Input */}
-                                                <input
-                                                    type="number"
-                                                    min="0"
-                                                    max="2"
-                                                    value={count}
-                                                    onChange={(e) => {
-                                                        const newCount = Math.max(0, Math.min(2, parseInt(e.target.value) || 0));
-                                                        handleCountChange(newCount);
-                                                    }}
-                                                    className="w-16 px-3 py-2 text-center text-lg font-bold border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-300"
-                                                />
+                                                <span className="text-2xl">{icons[type]}</span>
+                                                <span className="text-sm">{names[type]}</span>
                                             </div>
-                                        );
-                                    })}
-                                </div>
-                                {selectedPowerups.length > 0 && (
-                                    <button
-                                        type="button"
-                                        onClick={() => setSelectedPowerups([])}
-                                        className="mt-3 text-sm text-red-600 hover:text-red-700 font-semibold"
-                                    >
-                                        Clear All
-                                    </button>
-                                )}
+
+                                            {/* Number Input */}
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                max="2"
+                                                value={count}
+                                                onChange={(e) => {
+                                                    const newCount = Math.max(0, Math.min(2, parseInt(e.target.value) || 0));
+                                                    handleCountChange(newCount);
+                                                }}
+                                                className="w-16 px-3 py-2 text-center text-lg font-bold border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-300"
+                                            />
+                                        </div>
+                                    );
+                                })}
                             </div>
-                        )}
+                            {selectedPowerups.length > 0 && (
+                                <button
+                                    type="button"
+                                    onClick={() => setSelectedPowerups([])}
+                                    className="mt-3 text-sm text-red-600 hover:text-red-700 font-semibold"
+                                >
+                                    Clear All
+                                </button>
+                            )}
+                        </div>
                     </div>
                 )}
             </div>
