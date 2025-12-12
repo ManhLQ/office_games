@@ -1,0 +1,66 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+package-lock.json
+yarn.lock
+.pnpm-store/
+
+# Build output
+/dist
+/build
+/.vite
+
+# Vite cache (optional)
+.vite/
+
+# Environment files (do NOT commit secrets)
+/.env
+.env.*.local
+.env.local
+.env.*.private
+.env.private
+
+# Local config files
+.env.production.local
+.env.development.local
+
+# Static analysis / bundler caches
+.cache/
+.esbuild/
+parcel-cache/
+rollup-plugin-terser-cache/
+
+# TypeScript
+*.tsbuildinfo
+
+# Editor directories and files
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Storybook
+storybook-static/
+
+# Optional: local dotenv key files and secrets
+key.pem
+*.key
+
+# Optional: lockfiles for alternative package managers (uncomment if you use them)
+# pnpm-lock.yaml
+# package-lock.json
