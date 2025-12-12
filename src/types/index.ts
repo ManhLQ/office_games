@@ -50,6 +50,7 @@ export interface RoomConfig {
   puzzleString: string; // 81 characters, '0' for empty cells
   solutionString: string; // 81 characters, the answer key
   powerupConfig?: PowerupConfig; // optional powerup configuration
+  timeLimit: number; // game time limit in minutes (default: 15)
 }
 
 // Player data
@@ -74,6 +75,7 @@ export interface Room {
   winnerId: string | null;
   players: Players;
   startTime: number | null; // timestamp when game started
+  terminatedAt?: number; // timestamp when game was terminated by admin
   sharedPowerupPool?: SharedPowerupPool; // for global powerup modes
 }
 

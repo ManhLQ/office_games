@@ -88,6 +88,9 @@ export const AdminPage = () => {
             winnerId={room.winnerId}
             gameStatus={room.status}
             startTime={room.startTime}
+            isAdmin={isAdmin}
+            roomCode={roomCode}
+            timeLimit={room.config.timeLimit}
         />
     );
 };

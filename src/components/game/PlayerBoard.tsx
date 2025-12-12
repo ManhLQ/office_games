@@ -8,10 +8,9 @@ import {
     getCompletionPercentage,
 } from '../../utils/sudoku';
 import { updatePlayerBoard, submitAnswer, updatePlayerCompletion } from '../../services/roomService';
-import { clearActivePowerup } from '../../services/powerupService';
+import { clearActivePowerup, usePowerup } from '../../services/powerupService';
 import { getHintCell } from '../../utils/powerupEffects';
-import type { Players, PowerupInventory, SharedPowerupPool } from '../../types';
-import { PowerupButton } from './PowerupButton';
+import type { Players, PowerupInventory, SharedPowerupPool, PowerupType } from '../../types';
 import { MiniBoard } from './MiniBoard';
 
 interface PlayerBoardProps {
@@ -23,11 +22,19 @@ interface PlayerBoardProps {
     playerName: string;
     players: Players;
     gameStartTime: number; // timestamp when game started
+    timeLimit: number; // game time limit in minutes
     powerupInventory?: PowerupInventory;
     sharedPowerupPool?: SharedPowerupPool;
     isGlobalMode?: boolean;
     onGameEnd: (isWinner: boolean, score: number) => void;
 }
+
+// Powerup metadata
+const POWERUP_META: Record<PowerupType, { name: string; icon: string; color: string }> = {
+    hint: { name: 'Hint', icon: '💡', color: 'bg-gradient-to-r from-yellow-400 to-orange-500' },
+    fog: { name: 'Fog', icon: '🌫️', color: 'bg-gradient-to-r from-gray-400 to-gray-600' },
+    peep: { name: 'Peep', icon: '👀', color: 'bg-gradient-to-r from-blue-400 to-purple-500' },
+};
 
 /**
  * PlayerBoard Component - The main controller for player's Sudoku input
@@ -49,6 +56,7 @@ export const PlayerBoard: React.FC<PlayerBoardProps> = React.memo(
         playerId,
         players,
         gameStartTime,
+        timeLimit,
         powerupInventory,
         sharedPowerupPool,
         isGlobalMode = false,
@@ -69,6 +77,11 @@ export const PlayerBoard: React.FC<PlayerBoardProps> = React.memo(
         const [elapsedTime, setElapsedTime] = useState(0);
         const [currentCompletion, setCurrentCompletion] = useState(0);
         const [hintCell, setHintCell] = useState<{ row: number; col: number; value: number } | null>(null);
+
+        // Calculate remaining time
+        const timeLimitMs = timeLimit * 60 * 1000;
+        const remainingMs = Math.max(0, timeLimitMs - (elapsedTime * 1000));
+        const remainingSeconds = Math.floor(remainingMs / 1000);
 
         // Timer effect
         React.useEffect(() => {
@@ -111,7 +124,7 @@ export const PlayerBoard: React.FC<PlayerBoardProps> = React.memo(
 
             // Handle hint powerup
             if (activePowerup.type === 'hint') {
-                // Get hint cell, preferring selected cell if available
+                // Get hint cell - use selected cell if available
                 const hint = getHintCell(
                     gridToString(userGrid),
                     solutionString,
@@ -139,7 +152,7 @@ export const PlayerBoard: React.FC<PlayerBoardProps> = React.memo(
                     return () => clearTimeout(timeout);
                 }
             }
-        }, [activePowerup, roomCode, playerId, solutionString, selectedCell]);
+        }, [activePowerup, roomCode, playerId, solutionString, userGrid]);
 
         // Clear hint when the hinted cell is filled
         React.useEffect(() => {
@@ -155,6 +168,27 @@ export const PlayerBoard: React.FC<PlayerBoardProps> = React.memo(
             const mins = Math.floor(seconds / 60);
             const secs = seconds % 60;
             return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        };
+
+        // Handle powerup usage
+        const handleUsePowerup = async (type: PowerupType) => {
+            if (activePowerup) {
+                alert('A powerup is already active!');
+                return;
+            }
+            try {
+                await usePowerup(roomCode, playerId, type, isGlobalMode);
+            } catch (error) {
+                console.error('Failed to use powerup:', error);
+                alert('Failed to use powerup');
+            }
+        };
+
+        // Get powerup counts
+        const getPowerupCount = (type: PowerupType): number => {
+            return isGlobalMode
+                ? sharedPowerupPool?.inventory?.[type] || 0
+                : powerupInventory?.[type] || 0;
         };
 
         // Get competitors (all players except current player)
@@ -281,8 +315,9 @@ export const PlayerBoard: React.FC<PlayerBoardProps> = React.memo(
             >
                 {/* Timer, Completion, and Powerups */}
                 <div className="flex gap-4 items-center flex-wrap justify-center">
-                    <div className="text-3xl font-mono font-bold text-white bg-gray-800 px-6 py-2 rounded-lg">
-                        ⏱️ {formatTime(elapsedTime)}
+                    <div className={`text-3xl font-mono font-bold text-white px-6 py-2 rounded-lg ${remainingSeconds <= 60 ? 'bg-red-600 animate-pulse' : 'bg-gray-800'
+                        }`}>
+                        ⏱️ {formatTime(remainingSeconds)}
                     </div>
                     <div className="bg-white px-6 py-2 rounded-lg shadow-lg">
                         <div className="text-sm font-semibold text-gray-600 mb-1">
@@ -300,16 +335,39 @@ export const PlayerBoard: React.FC<PlayerBoardProps> = React.memo(
                             </span>
                         </div>
                     </div>
-                    {/* Powerup Button */}
-                    {powerupInventory && (
-                        <PowerupButton
-                            roomCode={roomCode}
-                            playerId={playerId}
-                            inventory={powerupInventory}
-                            activePowerup={activePowerup || null}
-                            isGlobalMode={isGlobalMode}
-                            sharedPoolInventory={sharedPowerupPool?.inventory}
-                        />
+                    {/* Powerup Buttons */}
+                    {(powerupInventory || sharedPowerupPool) && (
+                        <div className="flex gap-2">
+                            {Object.entries(POWERUP_META).map(([type, meta]) => {
+                                const powerupType = type as PowerupType;
+                                const count = getPowerupCount(powerupType);
+                                const isActive = activePowerup?.type === powerupType;
+                                const isDisabled = count === 0 || isActive;
+
+                                return (
+                                    <button
+                                        key={type}
+                                        onClick={() => handleUsePowerup(powerupType)}
+                                        disabled={isDisabled}
+                                        className={`
+                                            relative flex items-center justify-center w-12 h-12 rounded-full text-2xl
+                                            font-bold text-white shadow-md transition-all duration-200
+                                            ${meta.color}
+                                            ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105 active:scale-95'}
+                                            ${isActive ? 'ring-4 ring-offset-2 ring-blue-400 animate-pulse' : ''}
+                                        `}
+                                        title={`${meta.name} (${count} available)`}
+                                    >
+                                        {meta.icon}
+                                        {count > 0 && (
+                                            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center border-2 border-white">
+                                                {count}
+                                            </span>
+                                        )}
+                                    </button>
+                                );
+                            })}
+                        </div>
                     )}
                 </div>
 

@@ -1,6 +1,15 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { MiniBoard } from './MiniBoard';
-import type { Players } from '../../types';
+import { terminateGame, deleteRoom } from '../../services/roomService';
+import type { Players, PowerupType } from '../../types';
+
+// Powerup metadata
+const POWERUP_META: Record<PowerupType, { name: string; icon: string }> = {
+    hint: { name: 'Hint', icon: '💡' },
+    fog: { name: 'Fog', icon: '🌫️' },
+    peep: { name: 'Peep', icon: '👀' },
+};
 
 interface SpectatorDashboardProps {
     players: Players;
@@ -9,6 +18,9 @@ interface SpectatorDashboardProps {
     winnerId: string | null;
     gameStatus: 'waiting' | 'playing' | 'finished';
     startTime: number | null;
+    isAdmin?: boolean;
+    roomCode?: string;
+    timeLimit?: number; // in minutes
 }
 
 /**
@@ -21,9 +33,14 @@ export const SpectatorDashboard: React.FC<SpectatorDashboardProps> = ({
     winnerId,
     gameStatus,
     startTime,
+    isAdmin = false,
+    roomCode = '',
+    timeLimit = 15,
 }) => {
+    const navigate = useNavigate();
     const playerEntries = Object.entries(players);
     const [elapsedTime, setElapsedTime] = useState(0);
+    const [isTerminating, setIsTerminating] = useState(false);
 
     // Timer effect
     useEffect(() => {
@@ -40,11 +57,55 @@ export const SpectatorDashboard: React.FC<SpectatorDashboardProps> = ({
         return () => clearInterval(interval);
     }, [gameStatus, startTime]);
 
+    // Auto-terminate when time limit is reached
+    useEffect(() => {
+        if (gameStatus === 'playing' && startTime && roomCode) {
+            const timeLimitMs = timeLimit * 60 * 1000;
+            const elapsedMs = Date.now() - startTime;
+
+            if (elapsedMs >= timeLimitMs) {
+                terminateGame(roomCode);
+            }
+        }
+    }, [gameStatus, startTime, timeLimit, roomCode, elapsedTime]);
+
     const formatTime = (seconds: number): string => {
         const mins = Math.floor(seconds / 60);
         const secs = seconds % 60;
         return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     };
+
+    const handleTerminateGame = async () => {
+        if (!roomCode || isTerminating) return;
+
+        if (confirm('Are you sure you want to terminate the game? This will end the game for all players.')) {
+            setIsTerminating(true);
+            try {
+                await terminateGame(roomCode);
+            } catch (error) {
+                console.error('Error terminating game:', error);
+                alert('Failed to terminate game');
+                setIsTerminating(false);
+            }
+        }
+    };
+
+    const handleGoHome = async () => {
+        if (!roomCode) return;
+
+        if (confirm('Delete all game data and return to home? This action cannot be undone.')) {
+            try {
+                await deleteRoom(roomCode);
+                navigate('/');
+            } catch (error) {
+                console.error('Error deleting room:', error);
+                alert('Failed to delete room');
+            }
+        }
+    };
+
+    const timeLimitSeconds = timeLimit * 60;
+    const remainingSeconds = Math.max(0, timeLimitSeconds - elapsedTime);
 
     const sortedPlayers = [...playerEntries].sort(([idA, playerA], [idB, playerB]) => {
         if (idA === winnerId) return -1;
@@ -75,10 +136,28 @@ export const SpectatorDashboard: React.FC<SpectatorDashboardProps> = ({
 
                 {/* Timer - HUGE display */}
                 {gameStatus === 'playing' && (
-                    <div className="inline-block bg-white/90 backdrop-blur-sm px-12 py-6 rounded-3xl mb-4 border-4 border-yellow-400 shadow-2xl">
-                        <div className="text-6xl md:text-7xl font-black bg-gradient-to-r from-orange-500 via-pink-500 to-purple-600 bg-clip-text text-transparent">
-                            ⏱️ {formatTime(elapsedTime)}
+                    <div className="space-y-3">
+                        <div className="inline-block bg-white/90 backdrop-blur-sm px-12 py-6 rounded-3xl border-4 border-yellow-400 shadow-2xl">
+                            <div className={`text-6xl md:text-7xl font-black bg-clip-text text-transparent ${remainingSeconds <= 60
+                                ? 'bg-gradient-to-r from-red-500 to-pink-500 animate-pulse'
+                                : 'bg-gradient-to-r from-orange-500 via-pink-500 to-purple-600'
+                                }`}>
+                                ⏱️ {formatTime(remainingSeconds)}
+                            </div>
                         </div>
+
+                        {/* Admin Controls - Terminate Button */}
+                        {isAdmin && (
+                            <div className="mt-4">
+                                <button
+                                    onClick={handleTerminateGame}
+                                    disabled={isTerminating}
+                                    className="px-8 py-4 bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white font-black text-lg rounded-xl shadow-xl transition-all transform hover:scale-105 disabled:cursor-not-allowed"
+                                >
+                                    {isTerminating ? 'TERMINATING...' : '🛑 TERMINATE GAME'}
+                                </button>
+                            </div>
+                        )}
                     </div>
                 )}
 
@@ -182,7 +261,7 @@ export const SpectatorDashboard: React.FC<SpectatorDashboardProps> = ({
                         🏆 FINAL SCOREBOARD 🏆
                     </h2>
                     <div className="space-y-3">
-                        {sortedPlayers.map(([playerId, player], index) => (
+                        {sortedPlayers.map(([playerId, player], _) => (
                             <div
                                 key={playerId}
                                 className={`
@@ -192,17 +271,53 @@ export const SpectatorDashboard: React.FC<SpectatorDashboardProps> = ({
                                         : 'bg-gradient-to-r from-purple-100 to-pink-100 text-gray-700'}
                 `}
                             >
-                                <span className="flex items-center gap-3">
-                                    <span className="text-2xl font-black">{index + 1}.</span>
-                                    {player.name}
-                                    {playerId === winnerId && <span className="text-2xl">👑</span>}
-                                </span>
+                                <div
+                                    className="relative p-4 bg-white/90 backdrop-blur-sm rounded-xl shadow-lg hover:shadow-xl transition-shadow"
+                                >
+                                    {/* Player Name with Active Powerup */}
+                                    <div className="flex items-center justify-between mb-2">
+                                        <div className="text-sm font-bold text-gray-700">
+                                            {player.name}
+                                            {winnerId === playerId && (
+                                                <span className="ml-1 text-yellow-500">👑</span>
+                                            )}
+                                        </div>
+                                        {/* Active Powerup Indicator */}
+                                        {player.powerups?.activePowerup && (() => {
+                                            const powerup = player.powerups.activePowerup;
+                                            const elapsed = Date.now() - powerup.startedAt;
+                                            const remaining = Math.max(0, powerup.durationMs - elapsed);
+                                            const remainingSeconds = Math.ceil(remaining / 1000);
+
+                                            if (remaining > 0) {
+                                                const meta = POWERUP_META[powerup.type];
+                                                return (
+                                                    <div className="flex items-center gap-1 bg-purple-100 px-2 py-1 rounded-full border-2 border-purple-400 animate-pulse">
+                                                        <span className="text-lg">{meta.icon}</span>
+                                                        <span className="text-xs font-bold text-purple-700">{remainingSeconds}s</span>
+                                                    </div>
+                                                );
+                                            }
+                                            return null;
+                                        })()}
+                                    </div>
+                                </div>
                                 <span className="font-mono font-black text-xl">
                                     {player.finalScore !== null ? `${player.finalScore}%` : '-'}
                                 </span>
                             </div>
                         ))}
                     </div>
+
+                    {/* Admin Go Home Button */}
+                    {isAdmin && (
+                        <button
+                            onClick={handleGoHome}
+                            className="mt-6 w-full px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-black text-xl rounded-2xl shadow-xl transition-all transform hover:scale-105"
+                        >
+                            🏠 GO HOME
+                        </button>
+                    )}
                 </div>
             )}
         </div>

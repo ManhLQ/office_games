@@ -1,0 +1,12 @@
+## Summary
+- Let limit the game to 15 mins to make it fun (let me configure in the code by minutes)
+- In the admin UI, during the game, let admin choose to terminate game at any time.
+- If a game is terminated:
+  - Players screen will be freezed and show a message that the game is over
+  - Admin UI will show a message that the game is over.
+  - Admin UI will show a leaderboard of players sorted by score.
+  - Admin UI will show a button to go home.
+- Once admin choose go home:
+  - Take all players to home screen.
+  - Delete all game data on Firebase (based on the game id).
+  - Go home.

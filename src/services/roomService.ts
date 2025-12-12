@@ -9,11 +9,13 @@ import { allocatePowerups, createEmptyInventory } from './powerupService';
  * Creates a new game room
  * @param difficulty - The difficulty level for the puzzle
  * @param powerupConfig - Optional powerup configuration
+ * @param timeLimit - Game time limit in minutes (default: 15)
  * @returns The room code and admin player ID
  */
 export async function createRoom(
   difficulty: Difficulty,
-  powerupConfig?: PowerupConfig
+  powerupConfig?: PowerupConfig,
+  timeLimit: number = 15
 ): Promise<{
   roomCode: string;
   adminId: string;
@@ -29,6 +31,7 @@ export async function createRoom(
       puzzleString,
       solutionString,
       powerupConfig,
+      timeLimit,
     },
     winnerId: null,
     players: {},
@@ -92,7 +95,7 @@ export async function joinRoom(
   if (powerupConfig?.enabled) {
     const allPlayerIds = [...Object.keys(room.players || {}), playerId];
     const { playerInventories } = allocatePowerups(powerupConfig, allPlayerIds);
-    
+
     playerData.powerups = {
       inventory: playerInventories[playerId] || createEmptyInventory(),
       activePowerup: null,
@@ -117,12 +120,12 @@ export async function updateRoomStatus(
   const updates: Record<string, unknown> = {
     [`rooms/${roomCode}/status`]: status,
   };
-  
+
   // Set startTime when game starts
   if (status === 'playing') {
     updates[`rooms/${roomCode}/startTime`] = Date.now();
   }
-  
+
   await update(ref(database), updates);
 }
 
@@ -204,4 +207,30 @@ export async function getRoomConfig(
   }
 
   return null;
+}
+
+/**
+ * Terminates a game (admin action)
+ * @param roomCode - The room code
+ */
+export async function terminateGame(
+  roomCode: string
+): Promise<void> {
+  const updates: Record<string, unknown> = {
+    [`rooms/${roomCode}/status`]: 'finished',
+    [`rooms/${roomCode}/terminatedAt`]: Date.now(),
+  };
+
+  await update(ref(database), updates);
+}
+
+/**
+ * Deletes a room and all its data (admin action)
+ * @param roomCode - The room code
+ */
+export async function deleteRoom(
+  roomCode: string
+): Promise<void> {
+  const roomRef = ref(database, `rooms/${roomCode}`);
+  await set(roomRef, null);
 }

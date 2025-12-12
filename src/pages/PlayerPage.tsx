@@ -159,18 +159,28 @@ export const PlayerPage = () => {
                         </>
                     ) : (
                         <>
-                            <div className="text-6xl mb-4">😓</div>
+                            <div className="text-6xl mb-4">{room.terminatedAt ? '⏱️' : '😓'}</div>
                             <h1 className="text-3xl font-bold text-gray-700 mb-2">
-                                Game Over
+                                {room.terminatedAt ? "Time's Up!" : 'Game Over'}
                             </h1>
-                            <p className="text-gray-600 mb-2">
-                                {winner?.name} won the game!
-                            </p>
+                            {room.terminatedAt ? (
+                                <p className="text-gray-600 mb-2">
+                                    The game was ended by admin
+                                </p>
+                            ) : (
+                                <p className="text-gray-600 mb-2">
+                                    {winner?.name} won the game!
+                                </p>
+                            )}
                             <p className="text-2xl font-bold text-purple-600 mb-6">
                                 Your Score: {finalScore}%
                             </p>
                         </>
                     )}
+
+                    <p className="text-sm text-gray-500 mb-4 italic">
+                        Waiting for admin to end session...
+                    </p>
 
                     <button
                         onClick={() => navigate('/')}
@@ -217,6 +227,7 @@ export const PlayerPage = () => {
                 playerName={playerName}
                 players={room.players || {}}
                 gameStartTime={gameStartTime}
+                timeLimit={room.config.timeLimit}
                 powerupInventory={powerupInventory}
                 sharedPowerupPool={sharedPowerupPool}
                 isGlobalMode={isGlobalMode || false}
