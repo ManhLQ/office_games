@@ -117,30 +117,28 @@ export const SpectatorDashboard: React.FC<SpectatorDashboardProps> = ({
     });
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-purple-600 via-pink-500 to-orange-400 p-6 relative overflow-hidden">
+        <div className="min-h-screen bg-gradient-to-br from-cyan-100 via-teal-100 to-rose-100 p-6 relative overflow-hidden">
             {/* Animated background bubbles */}
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute top-20 left-20 w-64 h-64 bg-yellow-300 rounded-full opacity-10 animate-pulse" style={{ animationDuration: '3s' }}></div>
-                <div className="absolute bottom-40 right-10 w-80 h-80 bg-cyan-300 rounded-full opacity-10 animate-pulse" style={{ animationDuration: '4s', animationDelay: '1s' }}></div>
-                <div className="absolute top-1/3 right-1/3 w-48 h-48 bg-lime-300 rounded-full opacity-10 animate-pulse" style={{ animationDuration: '5s', animationDelay: '2s' }}></div>
+            <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-30">
+                <div className="absolute top-20 left-20 w-64 h-64 bg-cyan-300 rounded-full blur-3xl"></div>
+                <div className="absolute bottom-40 right-10 w-80 h-80 bg-rose-300 rounded-full blur-3xl"></div>
+                <div className="absolute top-1/3 right-1/3 w-48 h-48 bg-teal-300 rounded-full blur-3xl"></div>
             </div>
 
             {/* Header */}
             <div className="text-center mb-6 relative z-10">
-                <div className="text-6xl mb-4 animate-bounce">🎉 🎮 🎊</div>
-                <h1 className="text-5xl md:text-7xl font-black text-white mb-4 drop-shadow-2xl" style={{
-                    textShadow: '4px 4px 0px rgba(0,0,0,0.3)'
-                }}>
-                    SUDOKU PARTY!
+                <div className="text-5xl mb-4">🎮</div>
+                <h1 className="text-4xl md:text-6xl font-black bg-gradient-to-r from-cyan-600 via-teal-600 to-rose-600 bg-clip-text text-transparent mb-4">
+                    SUDOKU BATTLE
                 </h1>
 
                 {/* Timer - HUGE display */}
                 {gameStatus === 'playing' && (
                     <div className="space-y-3">
-                        <div className="inline-block bg-white/90 backdrop-blur-sm px-12 py-6 rounded-3xl border-4 border-yellow-400 shadow-2xl">
-                            <div className={`text-6xl md:text-7xl font-black bg-clip-text text-transparent ${remainingSeconds <= 60
-                                ? 'bg-gradient-to-r from-red-500 to-pink-500 animate-pulse'
-                                : 'bg-gradient-to-r from-orange-500 via-pink-500 to-purple-600'
+                        <div className="inline-block bg-white/95 backdrop-blur-sm px-10 py-5 rounded-2xl border-2 border-cyan-300 shadow-xl">
+                            <div className={`text-5xl md:text-6xl font-black ${remainingSeconds <= 60
+                                ? 'text-rose-600 animate-pulse'
+                                : 'bg-gradient-to-r from-cyan-600 to-teal-600 bg-clip-text text-transparent'
                                 }`}>
                                 ⏱️ {formatTime(remainingSeconds)}
                             </div>
@@ -152,32 +150,30 @@ export const SpectatorDashboard: React.FC<SpectatorDashboardProps> = ({
                                 <button
                                     onClick={handleTerminateGame}
                                     disabled={isTerminating}
-                                    className="px-8 py-4 bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white font-black text-lg rounded-xl shadow-xl transition-all transform hover:scale-105 disabled:cursor-not-allowed"
+                                    className="px-8 py-4 bg-red-600 hover:bg-red-700 disabled:bg-slate-400 text-white font-bold text-lg rounded-xl shadow-lg transition-all disabled:cursor-not-allowed"
                                 >
-                                    {isTerminating ? 'TERMINATING...' : '🛑 TERMINATE GAME'}
+                                    {isTerminating ? 'TERMINATING...' : 'Terminate Game'}
                                 </button>
                             </div>
                         )}
                     </div>
                 )}
 
-                <div className="text-2xl md:text-3xl font-black text-white drop-shadow-lg">
-                    {gameStatus === 'waiting' && '⏳ Get Ready to Party!'}
-                    {gameStatus === 'playing' && '🔥 THE RACE IS ON! 🔥'}
-                    {gameStatus === 'finished' && `🏆 PARTY OVER! Time: ${formatTime(elapsedTime)}`}
+                <div className="text-xl md:text-2xl font-bold text-slate-700">
+                    {gameStatus === 'waiting' && 'Get Ready!'}
+                    {gameStatus === 'playing' && 'Game in Progress'}
+                    {gameStatus === 'finished' && `Game Over - Time: ${formatTime(elapsedTime)}`}
                 </div>
             </div>
 
             {/* Winner Announcement */}
             {gameStatus === 'finished' && winnerId && players[winnerId] && (
-                <div className="text-center mb-8 animate-pulse relative z-10">
-                    <div className="text-8xl md:text-9xl font-black text-yellow-300 drop-shadow-2xl mb-4" style={{
-                        textShadow: '6px 6px 0px rgba(0,0,0,0.3), 0 0 40px rgba(255,255,0,0.5)'
-                    }}>
-                        🎉 {players[winnerId].name.toUpperCase()} 🎉
+                <div className="text-center mb-8 relative z-10">
+                    <div className="text-6xl md:text-7xl font-black text-rose-500 mb-4">
+                        🏆 {players[winnerId].name.toUpperCase()} 🏆
                     </div>
-                    <div className="text-5xl font-black text-white drop-shadow-xl">
-                        ⭐ CHAMPION! ⭐
+                    <div className="text-4xl font-black bg-gradient-to-r from-cyan-600 to-teal-600 bg-clip-text text-transparent">
+                        WINNER!
                     </div>
                 </div>
             )}
@@ -219,15 +215,14 @@ export const SpectatorDashboard: React.FC<SpectatorDashboardProps> = ({
                             {/* Powerup Badge */}
                             {powerupDisplay && (
                                 <div className={`
-                                    absolute -top-3 -right-3 z-20 px-4 py-2 rounded-full shadow-lg
-                                    bg-gradient-to-r ${powerupDisplay.color} text-white font-black
-                                    flex items-center gap-2 border-2 border-white
-                                    ${powerupDisplay.remaining ? 'animate-pulse' : ''}
+                                    absolute -top-3 -right-3 z-20 px-3 py-1.5 rounded-full shadow-md
+                                    ${powerupDisplay.type === 'hint' ? 'bg-amber-500' : powerupDisplay.type === 'fog' ? 'bg-slate-500' : 'bg-cyan-500'}
+                                    text-white font-bold flex items-center gap-2 border-2 border-white text-sm
                                 `}>
-                                    <span className="text-xl">{powerupDisplay.icon}</span>
-                                    <span className="text-sm uppercase">{powerupDisplay.type}</span>
+                                    <span className="text-lg">{powerupDisplay.icon}</span>
+                                    <span className="text-xs uppercase">{powerupDisplay.type}</span>
                                     {powerupDisplay.remaining !== null && (
-                                        <span className="text-sm">{powerupDisplay.remaining}s</span>
+                                        <span className="text-xs">{powerupDisplay.remaining}s</span>
                                     )}
                                 </div>
                             )}
@@ -256,19 +251,19 @@ export const SpectatorDashboard: React.FC<SpectatorDashboardProps> = ({
 
             {/* Leaderboard */}
             {gameStatus === 'finished' && (
-                <div className="mt-8 max-w-md mx-auto bg-white/95 backdrop-blur-lg rounded-3xl p-8 shadow-2xl border-4 border-yellow-400 relative z-10">
-                    <h2 className="text-3xl font-black text-center mb-6 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                        🏆 FINAL SCOREBOARD 🏆
+                <div className="mt-8 max-w-md mx-auto bg-white/95 backdrop-blur-lg rounded-2xl p-6 shadow-xl border border-cyan-200 relative z-10">
+                    <h2 className="text-2xl font-black text-center mb-4 bg-gradient-to-r from-cyan-600 to-teal-600 bg-clip-text text-transparent">
+                        🏆 Final Scoreboard
                     </h2>
                     <div className="space-y-3">
                         {sortedPlayers.map(([playerId, player], _) => (
                             <div
                                 key={playerId}
                                 className={`
-                  flex items-center justify-between p-4 rounded-xl font-bold text-lg
+                  flex items-center justify-between p-3 rounded-lg font-semibold
                   ${playerId === winnerId
-                                        ? 'bg-gradient-to-r from-yellow-300 to-orange-300 text-gray-900 ring-4 ring-yellow-500 scale-105'
-                                        : 'bg-gradient-to-r from-purple-100 to-pink-100 text-gray-700'}
+                                        ? 'bg-gradient-to-r from-rose-50 to-pink-100 text-slate-900 ring-2 ring-rose-400'
+                                        : 'bg-slate-50 text-slate-700 border border-slate-200'}
                 `}
                             >
                                 <div
@@ -313,7 +308,7 @@ export const SpectatorDashboard: React.FC<SpectatorDashboardProps> = ({
                     {isAdmin && (
                         <button
                             onClick={handleGoHome}
-                            className="mt-6 w-full px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-black text-xl rounded-2xl shadow-xl transition-all transform hover:scale-105"
+                            className="mt-6 w-full px-8 py-4 bg-gradient-to-r from-cyan-500 to-teal-600 hover:from-cyan-600 hover:to-teal-700 text-white font-bold text-xl rounded-xl shadow-lg transition-all"
                         >
                             🏠 GO HOME
                         </button>

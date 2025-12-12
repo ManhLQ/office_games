@@ -55,11 +55,11 @@ export const JoinRoom: React.FC<JoinRoomProps> = ({ onRoomJoined, initialRoomCod
     };
 
     return (
-        <div className="max-w-md w-full mx-auto p-8 bg-gradient-to-br from-white via-cyan-50 to-blue-50 rounded-3xl shadow-2xl border-4 border-cyan-300">
+        <div className="max-w-md w-full mx-auto p-8 bg-gradient-to-br from-white via-cyan-50 to-teal-50 rounded-2xl shadow-xl border border-cyan-200">
             <div className="text-center mb-6">
-                <div className="text-5xl mb-3">🎊🚀</div>
-                <h2 className="text-4xl font-black bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent">
-                    JOIN THE PARTY!
+                <div className="text-4xl mb-3">🎮</div>
+                <h2 className="text-3xl font-bold bg-gradient-to-r from-cyan-600 to-teal-600 bg-clip-text text-transparent">
+                    Join Game
                 </h2>
             </div>
 
@@ -68,9 +68,9 @@ export const JoinRoom: React.FC<JoinRoomProps> = ({ onRoomJoined, initialRoomCod
                 <div>
                     <label
                         htmlFor="roomCode"
-                        className="block text-lg font-black text-gray-700 mb-3 text-center"
+                        className="block text-base font-semibold text-slate-700 mb-2"
                     >
-                        🎯 Party Room Code
+                        Room Code
                     </label>
                     <input
                         type="text"
@@ -79,11 +79,11 @@ export const JoinRoom: React.FC<JoinRoomProps> = ({ onRoomJoined, initialRoomCod
                         onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
                         placeholder="ENTER CODE"
                         maxLength={8}
-                        className="w-full px-6 py-4 text-center text-3xl font-black tracking-widest
-                       bg-gradient-to-r from-yellow-100 to-orange-100
-                       border-4 border-orange-400 rounded-2xl
-                       focus:border-pink-500 focus:ring-4 focus:ring-pink-300
-                       transition-all duration-200 uppercase shadow-lg"
+                        className="w-full px-6 py-4 text-center text-2xl font-black tracking-widest
+                       bg-white
+                       border-2 border-cyan-300 rounded-xl
+                       focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200
+                       transition-all duration-200 uppercase shadow-sm"
                     />
                 </div>
 
@@ -91,9 +91,9 @@ export const JoinRoom: React.FC<JoinRoomProps> = ({ onRoomJoined, initialRoomCod
                 <div>
                     <label
                         htmlFor="playerName"
-                        className="block text-lg font-black text-gray-700 mb-3 text-center"
+                        className="block text-base font-semibold text-slate-700 mb-2"
                     >
-                        ✨ Your Epic Name
+                        Your Name
                     </label>
                     <input
                         type="text"
@@ -102,11 +102,11 @@ export const JoinRoom: React.FC<JoinRoomProps> = ({ onRoomJoined, initialRoomCod
                         onChange={(e) => setPlayerName(e.target.value)}
                         placeholder="Enter your name"
                         maxLength={20}
-                        className="w-full px-6 py-4 text-xl font-bold text-center
-                       bg-gradient-to-r from-purple-100 to-pink-100
-                       border-4 border-purple-400 rounded-2xl
-                       focus:border-pink-500 focus:ring-4 focus:ring-pink-300
-                       transition-all duration-200 shadow-lg"
+                        className="w-full px-6 py-3 text-lg font-semibold text-center
+                       bg-white
+                       border-2 border-cyan-300 rounded-xl
+                       focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200
+                       transition-all duration-200 shadow-sm"
                     />
                 </div>
 
@@ -122,11 +122,11 @@ export const JoinRoom: React.FC<JoinRoomProps> = ({ onRoomJoined, initialRoomCod
                     type="submit"
                     disabled={isLoading}
                     className={`
-            w-full py-5 rounded-2xl font-black text-2xl text-white
-            transition-all duration-300 transform
+            w-full py-4 rounded-xl font-bold text-lg text-white
+            transition-all duration-200
             ${isLoading
-                            ? 'bg-gray-400 cursor-not-allowed'
-                            : 'bg-gradient-to-r from-green-400 via-cyan-500 to-blue-500 hover:from-green-500 hover:via-cyan-600 hover:to-blue-600 shadow-2xl hover:shadow-cyan-500/50 hover:scale-105'}
+                            ? 'bg-slate-400 cursor-not-allowed'
+                            : 'bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 shadow-lg hover:shadow-xl'}
           `}
                 >
                     {isLoading ? (
@@ -135,13 +135,11 @@ export const JoinRoom: React.FC<JoinRoomProps> = ({ onRoomJoined, initialRoomCod
                                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                             </svg>
-                            Joining Party...
+                            Joining...
                         </span>
                     ) : (
-                        <span className="flex items-center justify-center gap-3">
-                            <span className="text-3xl">🎊</span>
-                            LET'S GO!
-                            <span className="text-3xl">🚀</span>
+                        <span>
+                            Join Game
                         </span>
                     )}
                 </button>

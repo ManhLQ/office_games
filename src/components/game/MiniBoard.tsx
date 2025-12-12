@@ -39,14 +39,14 @@ export const MiniBoard: React.FC<MiniBoardProps> = React.memo(
             <div
                 className={`
           flex flex-col items-center p-4 rounded-xl
-          ${isWinner ? 'bg-gradient-to-br from-yellow-100 to-yellow-200 ring-4 ring-yellow-400' : 'bg-white'}
+          ${isWinner ? 'bg-gradient-to-br from-rose-50 to-pink-100 ring-2 ring-rose-400' : 'bg-white'}
           shadow-lg
         `}
             >
                 {/* Player Name */}
                 <h3 className="text-lg font-bold mb-2 text-gray-800">
                     {playerName}
-                    {isWinner && <span className="ml-2 text-yellow-600">🏆 Winner!</span>}
+                    {isWinner && <span className="ml-2 text-rose-600">🏆 Winner!</span>}
                 </h3>
 
                 {/* Completion Progress (shown during gameplay) */}
@@ -55,7 +55,7 @@ export const MiniBoard: React.FC<MiniBoardProps> = React.memo(
                         <div className="flex items-center gap-2 mb-1">
                             <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
                                 <div
-                                    className="h-full bg-gradient-to-r from-purple-400 to-purple-600 transition-all duration-500"
+                                    className="h-full bg-gradient-to-r from-cyan-400 to-teal-600 transition-all duration-500"
                                     style={{ width: `${completionPercentage}%` }}
                                 />
                             </div>

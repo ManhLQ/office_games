@@ -50,40 +50,39 @@ export const CreateRoom: React.FC<CreateRoomProps> = ({ onRoomCreated }) => {
         }
     };
 
-    const difficulties: { value: Difficulty; label: string; emoji: string; gradient: string }[] = [
-        { value: 'easy', label: 'Easy Breezy', emoji: '🌈', gradient: 'from-green-400 to-emerald-500' },
-        { value: 'medium', label: 'Party Mode', emoji: '🎉', gradient: 'from-yellow-400 to-orange-500' },
-        { value: 'hard', label: 'Challenge!', emoji: '🔥', gradient: 'from-orange-500 to-red-500' },
-        { value: 'expert', label: 'EPIC Boss', emoji: '⚡', gradient: 'from-purple-500 to-pink-600' },
+    const difficulties: { value: Difficulty; label: string; color: string }[] = [
+        { value: 'easy', label: 'Easy', color: 'emerald' },
+        { value: 'medium', label: 'Medium', color: 'cyan' },
+        { value: 'hard', label: 'Hard', color: 'rose' },
+        { value: 'expert', label: 'Expert', color: 'pink' },
     ];
 
     return (
-        <div className="max-w-2xl w-full mx-auto p-8 bg-gradient-to-br from-white via-pink-50 to-purple-50 rounded-3xl shadow-2xl border-4 border-pink-300 max-h-[90vh] overflow-y-auto">
+        <div className="max-w-2xl w-full mx-auto p-8 bg-gradient-to-br from-white via-cyan-50 to-teal-50 rounded-2xl shadow-xl border border-cyan-200 max-h-[90vh] overflow-y-auto">
             <div className="text-center mb-6">
-                <div className="text-5xl mb-3">🎮✨</div>
-                <h2 className="text-4xl font-black bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                    CREATE PARTY!
+                <div className="text-4xl mb-3">🎮</div>
+                <h2 className="text-3xl font-bold bg-gradient-to-r from-cyan-600 to-teal-600 bg-clip-text text-transparent">
+                    Create Game
                 </h2>
             </div>
 
             {/* Difficulty Selection */}
             <div className="mb-6">
-                <label className="block text-lg font-black text-gray-700 mb-4 text-center">
-                    🎯 Choose Your Challenge Level
+                <label className="block text-base font-semibold text-slate-700 mb-4">
+                    Difficulty Level
                 </label>
                 <div className="grid grid-cols-2 gap-4">
-                    {difficulties.map(({ value, label, emoji, gradient }) => (
+                    {difficulties.map(({ value, label, color }) => (
                         <button
                             key={value}
                             onClick={() => setDifficulty(value)}
                             className={`
-                p-5 rounded-2xl font-bold text-lg transition-all duration-300 transform
+                p-4 rounded-xl font-semibold text-base transition-all duration-200
                 ${difficulty === value
-                                    ? `bg-gradient-to-br ${gradient} text-white ring-4 ring-offset-2 ring-yellow-400 scale-110 shadow-xl`
-                                    : 'bg-white text-gray-700 hover:bg-gray-100 shadow-md hover:scale-105'}
+                                    ? `bg-${color}-600 text-white ring-2 ring-${color}-600 shadow-lg`
+                                    : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200'}
               `}
                         >
-                            <span className="text-3xl block mb-2">{emoji}</span>
                             {label}
                         </button>
                     ))}
@@ -99,8 +98,8 @@ export const CreateRoom: React.FC<CreateRoomProps> = ({ onRoomCreated }) => {
                         onChange={(e) => setPowerupsEnabled(e.target.checked)}
                         className="w-5 h-5 rounded accent-purple-600"
                     />
-                    <span className="text-lg font-black text-gray-700">
-                        ⚡ Enable Powerups
+                    <span className="text-base font-semibold text-slate-700">
+                        Enable Powerups
                     </span>
                 </label>
 
@@ -279,11 +278,11 @@ export const CreateRoom: React.FC<CreateRoomProps> = ({ onRoomCreated }) => {
                 onClick={handleCreateRoom}
                 disabled={isLoading}
                 className={`
-          w-full py-5 rounded-2xl font-black text-2xl text-white
-          transition-all duration-300 transform
+          w-full py-4 rounded-xl font-bold text-lg text-white
+          transition-all duration-200
           ${isLoading
-                        ? 'bg-gray-400 cursor-not-allowed'
-                        : 'bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 hover:from-purple-600 hover:via-pink-600 hover:to-orange-600 shadow-2xl hover:shadow-pink-500/50 hover:scale-105'}
+                        ? 'bg-slate-400 cursor-not-allowed'
+                        : 'bg-gradient-to-r from-cyan-500 to-teal-600 hover:from-cyan-600 hover:to-teal-700 shadow-lg hover:shadow-xl'}
         `}
             >
                 {isLoading ? (
@@ -295,10 +294,8 @@ export const CreateRoom: React.FC<CreateRoomProps> = ({ onRoomCreated }) => {
                         Creating Party...
                     </span>
                 ) : (
-                    <span className="flex items-center justify-center gap-3">
-                        <span className="text-3xl">🎊</span>
-                        START PARTY
-                        <span className="text-3xl">🎉</span>
+                    <span className="flex items-center justify-center gap-2">
+                        Create Room
                     </span>
                 )}
             </button>

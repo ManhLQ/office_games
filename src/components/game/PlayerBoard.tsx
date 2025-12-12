@@ -31,9 +31,9 @@ interface PlayerBoardProps {
 
 // Powerup metadata
 const POWERUP_META: Record<PowerupType, { name: string; icon: string; color: string }> = {
-    hint: { name: 'Hint', icon: '💡', color: 'bg-gradient-to-r from-yellow-400 to-orange-500' },
-    fog: { name: 'Fog', icon: '🌫️', color: 'bg-gradient-to-r from-gray-400 to-gray-600' },
-    peep: { name: 'Peep', icon: '👀', color: 'bg-gradient-to-r from-blue-400 to-purple-500' },
+    hint: { name: 'Hint', icon: '💡', color: 'bg-amber-500' },
+    fog: { name: 'Fog', icon: '🌫️', color: 'bg-slate-500' },
+    peep: { name: 'Peep', icon: '👀', color: 'bg-cyan-500' },
 };
 
 /**
@@ -315,18 +315,18 @@ export const PlayerBoard: React.FC<PlayerBoardProps> = React.memo(
             >
                 {/* Timer, Completion, and Powerups */}
                 <div className="flex gap-4 items-center flex-wrap justify-center">
-                    <div className={`text-3xl font-mono font-bold text-white px-6 py-2 rounded-lg ${remainingSeconds <= 60 ? 'bg-red-600 animate-pulse' : 'bg-gray-800'
+                    <div className={`text-2xl font-mono font-bold text-white px-6 py-2 rounded-lg ${remainingSeconds <= 60 ? 'bg-rose-600 animate-pulse' : 'bg-teal-600'
                         }`}>
                         ⏱️ {formatTime(remainingSeconds)}
                     </div>
-                    <div className="bg-white px-6 py-2 rounded-lg shadow-lg">
+                    <div className="bg-white px-6 py-2 rounded-lg shadow-md border border-cyan-200">
                         <div className="text-sm font-semibold text-gray-600 mb-1">
                             Your Progress
                         </div>
                         <div className="flex items-center gap-2">
                             <div className="w-32 h-3 bg-gray-200 rounded-full overflow-hidden">
                                 <div
-                                    className="h-full bg-gradient-to-r from-green-400 to-green-600 transition-all duration-500"
+                                    className="h-full bg-gradient-to-r from-emerald-400 to-teal-500 transition-all duration-500"
                                     style={{ width: `${currentCompletion}%` }}
                                 />
                             </div>
@@ -354,7 +354,7 @@ export const PlayerBoard: React.FC<PlayerBoardProps> = React.memo(
                                             font-bold text-white shadow-md transition-all duration-200
                                             ${meta.color}
                                             ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105 active:scale-95'}
-                                            ${isActive ? 'ring-4 ring-offset-2 ring-blue-400 animate-pulse' : ''}
+                                            ${isActive ? 'ring-2 ring-offset-2 ring-cyan-400' : ''}
                                         `}
                                         title={`${meta.name} (${count} available)`}
                                     >
@@ -405,9 +405,9 @@ export const PlayerBoard: React.FC<PlayerBoardProps> = React.memo(
 
                     // Normal view: show compact progress bars
                     return (
-                        <div className="bg-white/90 backdrop-blur-sm px-4 py-3 rounded-lg shadow-lg w-full max-w-md">
-                            <div className="text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">
-                                🏁 Competitors
+                        <div className="bg-white/95 backdrop-blur-sm px-4 py-3 rounded-lg shadow-md w-full max-w-md border border-cyan-200">
+                            <div className="text-xs font-semibold text-slate-600 mb-2">
+                                Competitors
                             </div>
                             <div className="space-y-2">
                                 {competitors.map((competitor) => (
@@ -418,7 +418,7 @@ export const PlayerBoard: React.FC<PlayerBoardProps> = React.memo(
                                             </div>
                                             <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden mt-1">
                                                 <div
-                                                    className="h-full bg-gradient-to-r from-blue-400 to-blue-600 transition-all duration-500"
+                                                    className="h-full bg-gradient-to-r from-cyan-400 to-teal-600 transition-all duration-500"
                                                     style={{ width: `${competitor.completionPercentage}%` }}
                                                 />
                                             </div>
@@ -612,13 +612,13 @@ export const PlayerBoard: React.FC<PlayerBoardProps> = React.memo(
                 <div className="flex gap-4 mt-4">
                     <button
                         onClick={handleReset}
-                        className="px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-lg shadow-lg transition-colors"
+                        className="px-6 py-3 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-lg shadow-md transition-colors"
                     >
                         🔄 Reset
                     </button>
                     <button
                         onClick={handleSubmit}
-                        className="px-8 py-3 bg-green-600 hover:bg-green-700 text-white font-bold text-lg rounded-lg shadow-lg transition-colors"
+                        className="px-8 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-lg rounded-lg shadow-md transition-colors"
                     >
                         ✅ Submit Answer
                     </button>
