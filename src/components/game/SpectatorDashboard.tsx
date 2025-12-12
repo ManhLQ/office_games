@@ -110,19 +110,62 @@ export const SpectatorDashboard: React.FC<SpectatorDashboardProps> = ({
           ${playerEntries.length <= 2 ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-2'}
         `}
             >
-                {sortedPlayers.map(([playerId, player]) => (
-                    <MiniBoard
-                        key={playerId}
-                        playerName={player.name}
-                        puzzleString={puzzleString}
-                        liveInput={player.currentBoardString}
-                        solutionString={solutionString}
-                        showErrors={true}
-                        isWinner={playerId === winnerId}
-                        finalScore={player.finalScore}
-                        completionPercentage={player.completionPercentage || 0}
-                    />
-                ))}
+                {sortedPlayers.map(([playerId, player]) => {
+                    // Extract active powerup info
+                    const activePowerup = player.powerups?.activePowerup;
+                    let powerupDisplay = null;
+
+                    if (activePowerup) {
+                        const elapsed = Date.now() - activePowerup.startedAt;
+                        const remaining = Math.max(0, Math.ceil((activePowerup.durationMs - elapsed) / 1000));
+                        const icons = { hint: '💡', fog: '🌫️', peep: '👀' };
+                        const colors = {
+                            hint: 'from-yellow-400 to-orange-500',
+                            fog: 'from-gray-400 to-gray-600',
+                            peep: 'from-blue-400 to-purple-500',
+                        };
+
+                        if (remaining > 0 || activePowerup.type === 'hint') {
+                            powerupDisplay = {
+                                type: activePowerup.type,
+                                icon: icons[activePowerup.type],
+                                remaining: activePowerup.type === 'hint' ? null : remaining,
+                                color: colors[activePowerup.type],
+                            };
+                        }
+                    }
+
+                    return (
+                        <div key={playerId} className="relative">
+                            {/* Powerup Badge */}
+                            {powerupDisplay && (
+                                <div className={`
+                                    absolute -top-3 -right-3 z-20 px-4 py-2 rounded-full shadow-lg
+                                    bg-gradient-to-r ${powerupDisplay.color} text-white font-black
+                                    flex items-center gap-2 border-2 border-white
+                                    ${powerupDisplay.remaining ? 'animate-pulse' : ''}
+                                `}>
+                                    <span className="text-xl">{powerupDisplay.icon}</span>
+                                    <span className="text-sm uppercase">{powerupDisplay.type}</span>
+                                    {powerupDisplay.remaining !== null && (
+                                        <span className="text-sm">{powerupDisplay.remaining}s</span>
+                                    )}
+                                </div>
+                            )}
+
+                            <MiniBoard
+                                playerName={player.name}
+                                puzzleString={puzzleString}
+                                liveInput={player.currentBoardString}
+                                solutionString={solutionString}
+                                showErrors={true}
+                                isWinner={playerId === winnerId}
+                                finalScore={player.finalScore}
+                                completionPercentage={player.completionPercentage || 0}
+                            />
+                        </div>
+                    );
+                })}
             </div>
 
             {/* No Players Message */}

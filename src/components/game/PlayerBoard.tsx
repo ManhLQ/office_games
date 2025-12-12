@@ -313,33 +313,88 @@ export const PlayerBoard: React.FC<PlayerBoardProps> = React.memo(
                 </div>
 
                 {/* Competitors Panel */}
-                {competitors.length > 0 && (
-                    <div className="bg-white/90 backdrop-blur-sm px-4 py-3 rounded-lg shadow-lg w-full max-w-md">
-                        <div className="text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">
-                            🏁 Competitors
-                        </div>
-                        <div className="space-y-2">
-                            {competitors.map((competitor) => (
-                                <div key={competitor.id} className="flex items-center gap-2">
-                                    <div className="flex-1">
-                                        <div className="text-sm font-semibold text-gray-700">
-                                            {competitor.name}
-                                        </div>
-                                        <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden mt-1">
-                                            <div
-                                                className="h-full bg-gradient-to-r from-blue-400 to-blue-600 transition-all duration-500"
-                                                style={{ width: `${competitor.completionPercentage}%` }}
-                                            />
+                {competitors.length > 0 && (() => {
+                    // Check if any competitor has Fog active (hiding this player's view)
+                    const activeFog = competitors.find(comp => {
+                        const fog = comp.powerups?.activePowerup;
+                        if (fog?.type === 'fog') {
+                            const elapsed = Date.now() - fog.startedAt;
+                            return elapsed < fog.durationMs; // Still active
+                        }
+                        return false;
+                    });
+
+                    // Check if current player has Peep active (revealing competitors)
+                    const hasPeep = activePowerup?.type === 'peep' &&
+                        (Date.now() - (activePowerup?.startedAt || 0)) < (activePowerup?.durationMs || 0);
+
+                    // Chronological precedence: if Fog started before Peep, Fog wins
+                    const isFogged = activeFog && (!hasPeep ||
+                        (activeFog.powerups?.activePowerup?.startedAt || 0) < (activePowerup?.startedAt || 0));
+
+                    if (isFogged) {
+                        // Show fogged overlay
+                        return (
+                            <div className="bg-white/90 backdrop-blur-sm px-4 py-3 rounded-lg shadow-lg w-full max-w-md relative overflow-hidden">
+                                <div className="text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">
+                                    🏁 Competitors
+                                </div>
+                                <div className="relative">
+                                    {/* Blurred background */}
+                                    <div className="blur-xl opacity-30">
+                                        {competitors.map((competitor) => (
+                                            <div key={competitor.id} className="flex items-center gap-2 mb-2">
+                                                <div className="flex-1">
+                                                    <div className="text-sm font-semibold text-gray-700">
+                                                        {competitor.name}
+                                                    </div>
+                                                    <div className="w-full h-2 bg-gray-200 rounded-full" />
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    {/* Fog overlay */}
+                                    <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-gray-300/80 to-gray-400/80 backdrop-blur-md rounded-lg">
+                                        <div className="text-center">
+                                            <div className="text-4xl mb-2 animate-pulse">🌫️</div>
+                                            <div className="text-lg font-black text-gray-700">FOGGED!</div>
+                                            <div className="text-xs text-gray-600">Competitor obscured your view</div>
                                         </div>
                                     </div>
-                                    <span className="text-sm font-bold text-gray-700 min-w-[3rem] text-right">
-                                        {competitor.completionPercentage}%
-                                    </span>
                                 </div>
-                            ))}
+                            </div>
+                        );
+                    }
+
+                    // Normal or Peep view
+                    return (
+                        <div className={`${hasPeep ? 'ring-4 ring-blue-400 animate-pulse' : ''} bg-white/90 backdrop-blur-sm px-4 py-3 rounded-lg shadow-lg w-full max-w-md`}>
+                            <div className="text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">
+                                {hasPeep ? '👀 Peeking at Competitors' : '🏁 Competitors'}
+                            </div>
+                            <div className="space-y-2">
+                                {competitors.map((competitor) => (
+                                    <div key={competitor.id} className="flex items-center gap-2">
+                                        <div className="flex-1">
+                                            <div className="text-sm font-semibold text-gray-700">
+                                                {competitor.name}
+                                            </div>
+                                            <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden mt-1">
+                                                <div
+                                                    className="h-full bg-gradient-to-r from-blue-400 to-blue-600 transition-all duration-500"
+                                                    style={{ width: `${competitor.completionPercentage}%` }}
+                                                />
+                                            </div>
+                                        </div>
+                                        <span className="text-sm font-bold text-gray-700 min-w-[3rem] text-right">
+                                            {competitor.completionPercentage}%
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
-                    </div>
-                )}
+                    );
+                })()}
 
                 {/* 9x9 Grid */}
                 <div className="grid grid-cols-9 gap-0 border-2 border-gray-800 bg-white">
