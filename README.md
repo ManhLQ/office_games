@@ -8,6 +8,19 @@ A real-time multiplayer Sudoku game designed for office engagement. Players (2-4
 - **Admin (Spectator):** Manages the game and displays a Central Dashboard on a TV/Projector showing every player's board updating in real-time.
 - **Goal:** First player to submit a correct solution wins!
 
+## 🏗️ Architecture
+
+This project uses a **plugin-based multi-game architecture** that allows easy addition of new games beyond Sudoku.
+
+📖 **[Read the Architecture Documentation →](architecture.md)**
+
+Key features:
+- **Game Plugin System** - Add new games by implementing standard interfaces
+- **Separation of Concerns** - Clear boundaries between framework and game logic
+- **Extensible Design** - Support for Chess, Tic-Tac-Toe, Word Games, and more
+
+For detailed information on architecture, design patterns, and how to add a new game, see [architecture.md](architecture.md).
+
 ## 🛠️ Tech Stack
 
 | Technology | Purpose |
