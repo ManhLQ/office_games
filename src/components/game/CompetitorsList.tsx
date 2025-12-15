@@ -2,6 +2,7 @@ import React from 'react';
 import type { Players } from '../../types';
 import type { IGame } from '../../games/core/interfaces/IGame';
 import { CompletionProgress } from './CompletionProgress';
+import { SudokuState } from '../../games/sudoku/SudokuState';
 
 interface CompetitorsListProps {
   /** Current player ID */
@@ -69,24 +70,44 @@ export const CompetitorsList: React.FC<CompetitorsListProps> = ({
               showPercentage={false}
             />
 
-            {isPeepMode && (
-              <div className="mt-3 p-2 bg-gray-50 rounded border border-gray-200">
-                {/* Render mini board using game renderer */}
-                {game.getRenderer().renderMiniBoard({
-                  playerName: player.name,
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  initialState: {} as any,
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  currentState: {} as any,
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  solution: {} as any,
-                  showErrors: false,
-                  isWinner,
-                  finalScore: player.finalScore,
-                  completionPercentage
-                })}
-              </div>
-            )}
+            {isPeepMode && (() => {
+              try {
+                const currentStateStr = player.currentGameState || player.currentBoardString;
+                if (!currentStateStr) {
+                  return (
+                    <div className="mt-3 p-2 bg-gray-50 rounded border border-gray-200">
+                      <div className="text-xs text-gray-500 text-center py-2">No board data</div>
+                    </div>
+                  );
+                }
+
+                // Deserialize game state - use game-specific deserialization
+                // For Sudoku, we can create state from string directly
+                const currentState = new SudokuState(currentStateStr);
+
+                return (
+                  <div className="mt-3 p-2 bg-gray-50 rounded border border-gray-200">
+                    {game.getRenderer().renderMiniBoard({
+                      playerName: player.name,
+                      initialState: currentState,
+                      currentState,
+                      solution: currentState,
+                      showErrors: false,
+                      isWinner,
+                      finalScore: player.finalScore,
+                      completionPercentage
+                    })}
+                  </div>
+                );
+              } catch (error) {
+                console.error('Error rendering mini board:', error);
+                return (
+                  <div className="mt-3 p-2 bg-gray-50 rounded border border-gray-200">
+                    <div className="text-xs text-red-500 text-center py-2">Error loading board</div>
+                  </div>
+                );
+              }
+            })()}
           </div>
         );
       })}

@@ -23,7 +23,10 @@ export const HomePage = () => {
     }, [pendingRoomCode]);
 
     const handleRoomCreated = (roomCode: string, adminId: string) => {
+        // CRITICAL: Store both adminId and playerId (they're the same for admin)
+        // This is needed for server-side validation in WaitingRoom
         sessionStorage.setItem('adminId', adminId);
+        sessionStorage.setItem('playerId', adminId); // Admin's playerId = adminId
         sessionStorage.setItem('isAdmin', 'true');
         navigate(`/admin/${roomCode}`);
     };

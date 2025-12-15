@@ -20,12 +20,17 @@ export class SudokuRenderer implements IGameRenderer {
       value: typeof props.hintCell.value === 'number' ? props.hintCell.value : parseInt(String(props.hintCell.value), 10)
     } : null;
 
+    // Convert highlightedNumber to number for Sudoku (which only uses numbers)
+    const highlightedNum = props.highlightedNumber
+      ? (typeof props.highlightedNumber === 'number' ? props.highlightedNumber : parseInt(String(props.highlightedNumber), 10))
+      : null;
+
     return React.createElement(SudokuGrid, {
       state,
       initialState,
       selectedCell: props.selectedCell,
-      hoveredCell: props.onCellSelect ? undefined : null,  // Simplified for now
-      highlightedNumber: null, // Will be managed by parent component
+      hoveredCell: props.hoveredCell || null,
+      highlightedNumber: highlightedNum,
       hintCell,
       onCellClick: (row: number, col: number) => {
         props.onCellSelect?.(row, col);
@@ -36,26 +41,62 @@ export class SudokuRenderer implements IGameRenderer {
   }
 
   renderMiniBoard(props: MiniBoardProps): React.ReactElement {
-    // For mini board, we'll create a simplified version
-    // This is used in spectator view
+    const currentState = props.currentState as SudokuState;
+    const initialState = props.initialState as SudokuState;
+
+    // Create a mini version of the Sudoku grid
+    const grid = currentState.getGrid();
+    const initialGrid = initialState.getGrid();
+
     return React.createElement('div', {
-      className: 'sudoku-mini-board bg-white p-2 rounded-lg shadow-md'
+      className: 'sudoku-mini-board bg-white p-2 rounded border border-gray-300'
     },
-      React.createElement('div', { className: 'text-sm font-bold mb-1' }, props.playerName),
-      React.createElement('div', { className: 'text-xs text-gray-600' },
-        `${props.completionPercentage || 0}% complete`
+      // Grid container
+      React.createElement('div', {
+        className: 'grid grid-cols-9 gap-0 border border-gray-600',
+        style: { fontSize: '8px', lineHeight: '1' }
+      },
+        grid.map((row, r) =>
+          row.map((cell, c) => {
+            const isInitial = initialGrid[r][c] !== 0;
+            return React.createElement('div', {
+              key: `${r}-${c}`,
+              className: `w-3 h-3 flex items-center justify-center border border-gray-300 ${isInitial ? 'font-bold text-gray-900' : 'text-blue-600'
+                }`,
+              style: {
+                borderRightWidth: (c + 1) % 3 === 0 && c < 8 ? '2px' : '1px',
+                borderBottomWidth: (r + 1) % 3 === 0 && r < 8 ? '2px' : '1px'
+              }
+            }, cell !== 0 ? String(cell) : '');
+          })
+        ).flat()
       )
     );
   }
 
   renderControls(props: ControlsProps): React.ReactElement {
+    // Calculate number counts from current state if available
     const numberCounts: Record<number, number> = {};
     for (let i = 1; i <= 9; i++) {
-      numberCounts[i] = 0; // Will be properly calculated by parent
+      numberCounts[i] = 0;
+    }
+
+    // Count numbers in grid if state is available
+    if (props.currentState) {
+      const state = props.currentState as SudokuState;
+      const grid = state.getGrid();
+      for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+          const val = grid[r][c];
+          if (val >= 1 && val <= 9) {
+            numberCounts[val]++;
+          }
+        }
+      }
     }
 
     return React.createElement(SudokuNumberPad, {
-      selectedCell: null, // Will be managed by parent
+      selectedCell: props.selectedCell || null,
       numberCounts,
       onNumberClick: (num: number) => {
         props.onInput(num);

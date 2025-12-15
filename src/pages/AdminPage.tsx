@@ -73,6 +73,7 @@ export const AdminPage = () => {
                         roomCode={roomCode}
                         players={room.players || {}}
                         isAdmin={isAdmin}
+                        playerId={sessionStorage.getItem('playerId') || undefined}
                     />
                 </div>
             </div>
@@ -80,11 +81,15 @@ export const AdminPage = () => {
     }
 
     // Playing or finished - show spectator dashboard
+    // Use legacy fields with fallbacks for backwards compatibility
+    const puzzleString = room.config.puzzleString || '';
+    const solutionString = room.config.solutionString || '';
+
     return (
         <SpectatorDashboard
             players={room.players || {}}
-            puzzleString={room.config.puzzleString}
-            solutionString={room.config.solutionString}
+            puzzleString={puzzleString}
+            solutionString={solutionString}
             winnerId={room.winnerId}
             gameStatus={room.status}
             startTime={room.startTime}

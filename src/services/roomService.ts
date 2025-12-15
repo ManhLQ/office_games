@@ -27,12 +27,14 @@ export async function createRoom(
   const roomData: Room = {
     status: 'waiting',
     config: {
+      gameId: 'sudoku', // TODO: Make this configurable when adding game selection UI
       difficulty,
       puzzleString,
       solutionString,
       powerupConfig,
       timeLimit,
     },
+    adminId, // SECURITY: Store admin ID for server-side validation
     winnerId: null,
     players: {},
     startTime: null,
@@ -110,13 +112,31 @@ export async function joinRoom(
 
 /**
  * Updates the room status
+ * SECURITY: Validates admin permissions before status changes
  * @param roomCode - The room code
  * @param status - The new status
+ * @param requestingPlayerId - ID of player requesting the change (optional, for validation)
  */
 export async function updateRoomStatus(
   roomCode: string,
-  status: RoomStatus
+  status: RoomStatus,
+  requestingPlayerId?: string
 ): Promise<void> {
+  // SECURITY: Validate admin permission for critical status changes
+  if (status === 'playing' && requestingPlayerId) {
+    const roomRef = ref(database, `rooms/${roomCode}`);
+    const snapshot = await get(roomRef);
+
+    if (!snapshot.exists()) {
+      throw new Error('Room not found');
+    }
+
+    const room = snapshot.val() as Room;
+    if (room.adminId !== requestingPlayerId) {
+      throw new Error('Only the room admin can start the game');
+    }
+  }
+
   const updates: Record<string, unknown> = {
     [`rooms/${roomCode}/status`]: status,
   };

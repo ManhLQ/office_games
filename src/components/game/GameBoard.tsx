@@ -1,4 +1,6 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect } from 'react';
+import { ref, update } from 'firebase/database';
+import { database } from '../../config/firebase';
 import type { IGame } from '../../games/core/interfaces/IGame';
 import type { IGameState } from '../../games/core/interfaces/IGameState';
 import type { IGameMove } from '../../games/core/interfaces/IGameMove';
@@ -78,6 +80,8 @@ export const GameBoard: React.FC<GameBoardProps> = ({
 
   const {
     selectedCell,
+    hoveredCell,
+    highlightedValue,
     selectCell,
     handleKeyDown
   } = useCellSelection({
@@ -99,6 +103,60 @@ export const GameBoard: React.FC<GameBoardProps> = ({
     sharedPowerupPool,
     isGlobalMode
   });
+
+  // Calculate and store hint cell when hint powerup is activated
+  useEffect(() => {
+    if (activePowerup?.type !== 'hint' || activePowerup.hintCell) return;
+
+    // Calculate hint cell based on current game state
+    const currentGrid = (currentState as any).getGrid?.();
+    const initialGrid = (initialState as any).getGrid?.();
+    const solutionGrid = (solution as any).getGrid?.();
+
+    if (!currentGrid || !initialGrid || !solutionGrid) return;
+
+    // Check if selected cell is empty and editable
+    const isSelectedEmpty = selectedCell &&
+      initialGrid[selectedCell.row][selectedCell.col] === 0 &&
+      currentGrid[selectedCell.row][selectedCell.col] === 0;
+
+    let hintCell;
+    if (isSelectedEmpty && selectedCell) {
+      // Show hint at selected empty cell
+      hintCell = {
+        row: selectedCell.row,
+        col: selectedCell.col,
+        value: solutionGrid[selectedCell.row][selectedCell.col]
+      };
+    } else {
+      // Find all empty editable cells
+      const emptyCells: Array<{ row: number, col: number }> = [];
+      for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+          if (initialGrid[r][c] === 0 && currentGrid[r][c] === 0) {
+            emptyCells.push({ row: r, col: c });
+          }
+        }
+      }
+
+      if (emptyCells.length > 0) {
+        // Pick random empty cell
+        const randomCell = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+        hintCell = {
+          row: randomCell.row,
+          col: randomCell.col,
+          value: solutionGrid[randomCell.row][randomCell.col]
+        };
+      }
+    }
+
+    // Update Firebase with the calculated hint cell
+    if (hintCell) {
+      update(ref(database), {
+        [`rooms/${roomCode}/players/${playerId}/powerups/activePowerup/hintCell`]: hintCell
+      });
+    }
+  }, [activePowerup, currentState, initialState, solution, selectedCell, roomCode, playerId]);
 
   // Handle input from game controls
   const handleInput = useCallback((value: number | string) => {
@@ -133,9 +191,13 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   // Check if peep mode is active
   const isPeepMode = activePowerup?.type === 'peep';
 
-  // Check if fog is affecting this player
-  const isFogged = Object.values(players).some(
-    (player) => player.powerups?.activePowerup?.type === 'fog' && player.powerups.activePowerup !== null
+  // Check if fog is affecting this player (someone else used fog on them)
+  const isFogged = Object.entries(players).some(
+    ([pid, player]) => {
+      const powerup = player.powerups?.activePowerup;
+      // Fog affects everyone EXCEPT the player who activated it
+      return powerup?.type === 'fog' && pid !== playerId;
+    }
   );
 
   // Get renderer
@@ -180,8 +242,10 @@ export const GameBoard: React.FC<GameBoardProps> = ({
                   solution,
                   onMove,
                   selectedCell,
+                  hoveredCell,
+                  highlightedNumber: highlightedValue,
                   onCellSelect: selectCell,
-                  hintCell: activePowerup?.type === 'hint' ? { row: 0, col: 0, value: 5 } : null
+                  hintCell: activePowerup?.type === 'hint' ? activePowerup.hintCell || null : null
                 })}
               </div>
 
@@ -193,7 +257,9 @@ export const GameBoard: React.FC<GameBoardProps> = ({
             <div className="mt-6">
               {renderer.renderControls({
                 onInput: handleInput,
-                onClear: handleClear
+                onClear: handleClear,
+                selectedCell,
+                currentState
               })}
             </div>
           </div>

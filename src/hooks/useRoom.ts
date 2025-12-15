@@ -15,6 +15,7 @@ export function useRoom(roomCode: string | null) {
 
   useEffect(() => {
     if (!roomCode) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setRoom(null);
       setLoading(false);
       return;

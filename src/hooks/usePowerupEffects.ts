@@ -16,6 +16,7 @@ interface PowerupState {
   type: PowerupType;
   startedAt: number;
   durationMs: number;
+  hintCell?: { row: number; col: number; value: number };
 }
 
 interface UsePowerupEffectsReturn {
@@ -59,8 +60,8 @@ export function usePowerupEffects({
 
     setActivePowerup(firebasePowerup);
 
-    // Auto-clear expired powerups (except hint which is cleared manually)
-    if (firebasePowerup.type !== 'hint' && firebasePowerup.durationMs > 0) {
+    // Auto-clear powerups after duration
+    if (firebasePowerup.durationMs > 0) {
       const elapsed = Date.now() - firebasePowerup.startedAt;
       const remaining = firebasePowerup.durationMs - elapsed;
 

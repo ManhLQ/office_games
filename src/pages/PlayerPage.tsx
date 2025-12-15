@@ -2,15 +2,17 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useRoom } from '../hooks/useRoom';
 import { WaitingRoom } from '../components/lobby';
-import { PlayerBoard } from '../components/game';
-import { getCompletionPercentage } from '../utils/sudoku';
+import { GameBoard } from '../components/game/GameBoard';
+import { gameRegistry } from '../games/core/GameRegistry';
+import type { IGameMove } from '../games/core/interfaces/IGameMove';
+import { SudokuState } from '../games/sudoku/SudokuState';
+import { SudokuMove } from '../games/sudoku/SudokuMove';
 import { submitAnswer } from '../services/roomService';
+import { updatePlayerState, updatePlayerCompletion } from '../services/gameStateService';
 
 /**
  * PlayerPage - Player's game view
- * 
- * Session Validation:
- * - Redirects to home with join mode if player name is missing
+ * Now game-agnostic, works with any registered game
  */
 export const PlayerPage = () => {
     const { roomCode } = useParams<{ roomCode: string }>();
@@ -24,10 +26,9 @@ export const PlayerPage = () => {
     const playerId = sessionStorage.getItem('playerId') || '';
     const playerName = sessionStorage.getItem('playerName') || '';
 
-    // Session validation - redirect to join if name is missing
+    // Session validation
     useEffect(() => {
         if (!playerId || !playerName) {
-            // Store the room code so we can pre-fill it on join page
             if (roomCode) {
                 sessionStorage.setItem('pendingRoomCode', roomCode);
             }
@@ -35,26 +36,39 @@ export const PlayerPage = () => {
         }
     }, [playerId, playerName, roomCode, navigate]);
 
+    // CRITICAL: Detect if admin leaves the waiting room
+    useEffect(() => {
+        if (!room || room.status !== 'waiting') return;
+
+        const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
+        if (isAdmin) return; // Admin doesn't need to check for themselves
+
+        // Check if room still has an adminId
+        // Note: Admin is NOT in players list during waiting room (they're on AdminPage)
+        // If room.adminId is missing/null, the room is orphaned
+        if (!room.adminId) {
+            // Room has no admin - redirect all players home
+            alert('The host has left the room. Returning to home page.');
+            sessionStorage.removeItem('playerId');
+            sessionStorage.removeItem('playerName');
+            navigate('/');
+        }
+    }, [room, navigate]);
+
     // Handle game end (when another player wins)
     useEffect(() => {
         if (room?.status === 'finished' && !gameEnded) {
             const player = room.players?.[playerId];
 
             if (room.winnerId === playerId) {
-                // We are the winner
                 setIsWinner(true);
                 setFinalScore(100);
             } else if (player && player.status !== 'finished') {
-                // We lost - calculate and submit score
-                const score = getCompletionPercentage(
-                    player.currentBoardString,
-                    room.config.puzzleString,
-                    room.config.solutionString
-                );
+                // Calculate final score
+                const score = player.completionPercentage || 0;
                 setFinalScore(score);
                 submitAnswer(roomCode!, playerId, false, score);
             } else if (player?.finalScore !== null) {
-                // Score already submitted
                 setFinalScore(player.finalScore);
             }
 
@@ -62,12 +76,53 @@ export const PlayerPage = () => {
         }
     }, [room, playerId, roomCode, gameEnded]);
 
-    // Handle local game end (when we submit correct answer)
+    // Handle local game end
     const handleGameEnd = useCallback((won: boolean, score: number) => {
         setIsWinner(won);
         setFinalScore(score);
         setGameEnded(true);
     }, []);
+
+    // Handle move
+    const handleMove = useCallback(async (move: IGameMove) => {
+        if (!room || !roomCode || !move.row || !move.col) return;
+
+        const game = gameRegistry.get(room.config.gameId);
+        if (!game) return;
+
+        const player = room.players?.[playerId];
+        if (!player) return;
+
+        // Get current state
+        const currentStateString = player.currentGameState || player.currentBoardString || room.config.puzzleString;
+        const currentState = new SudokuState(currentStateString!);
+
+        // Apply move - convert value to number if it's a string
+        const numValue = typeof move.value === 'string' ? parseInt(move.value, 10) : (move.value || 0);
+        const sudokuMove = new SudokuMove(move.row, move.col, numValue);
+        const newState = game.applyMove(currentState, sudokuMove) as SudokuState;
+
+        // Update Firebase
+        await updatePlayerState(roomCode, playerId, newState);
+
+        // Update completion percentage
+        const initialStateString = room.config.puzzleString!;
+        const initialState = new SudokuState(initialStateString);
+        await updatePlayerCompletion(roomCode, playerId, game, newState, initialState);
+
+        // Check if game is complete and correct
+        if (game.isGameComplete(newState)) {
+            const solutionString = room.config.solutionString!;
+            const solution = new SudokuState(solutionString);
+            const isCorrect = game.isGameCorrect(newState, solution);
+
+            if (isCorrect) {
+                const score = game.calculateScore(newState, initialState);
+                await submitAnswer(roomCode, playerId, true, score);
+                handleGameEnd(true, score);
+            }
+        }
+    }, [room, roomCode, playerId, handleGameEnd]);
 
     if (!roomCode) {
         return (
@@ -85,7 +140,6 @@ export const PlayerPage = () => {
         );
     }
 
-    // Show loading while checking session or if player info missing (will redirect)
     if (!playerId || !playerName) {
         return (
             <div className="min-h-screen bg-gray-900 flex items-center justify-center">
@@ -102,7 +156,7 @@ export const PlayerPage = () => {
             <div className="min-h-screen bg-gray-900 flex items-center justify-center">
                 <div className="text-center text-white">
                     <div className="animate-spin w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full mx-auto mb-4" />
-                    <p>Loading game...</p>
+                    <p>Loading room...</p>
                 </div>
             </div>
         );
@@ -112,8 +166,7 @@ export const PlayerPage = () => {
         return (
             <div className="min-h-screen bg-gray-900 flex items-center justify-center">
                 <div className="text-center text-white">
-                    <h1 className="text-2xl mb-4">Room not found</h1>
-                    <p className="text-gray-400 mb-4">{error}</p>
+                    <h1 className="text-2xl mb-4">Error: {error || 'Room not found'}</h1>
                     <button
                         onClick={() => navigate('/')}
                         className="px-6 py-2 bg-purple-600 rounded-lg hover:bg-purple-700"
@@ -125,58 +178,38 @@ export const PlayerPage = () => {
         );
     }
 
-    // Waiting state - show lobby
+    // Waiting state
     if (room.status === 'waiting') {
+        // SECURITY: Check admin status from sessionStorage (set during room creation)
+        // Do NOT trust client-side player order - this is validated server-side
+        const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
+
         return (
-            <div className="min-h-screen bg-gradient-to-br from-purple-900 via-indigo-900 to-blue-900 flex items-center justify-center p-4">
-                <div className="w-full max-w-lg">
-                    <WaitingRoom
-                        roomCode={roomCode}
-                        players={room.players || {}}
-                        isAdmin={false}
-                    />
-                </div>
-            </div>
+            <WaitingRoom
+                roomCode={roomCode}
+                players={room.players || {}}
+                isAdmin={isAdmin}
+                playerId={playerId}
+            />
         );
     }
 
-    // Game finished - show results
-    if (gameEnded || room.status === 'finished') {
-        const winner = room.winnerId ? room.players?.[room.winnerId] : null;
-
+    // Game ended state
+    if (gameEnded) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-purple-900 via-indigo-900 to-blue-900 flex items-center justify-center p-4">
-                <div className="text-center bg-white rounded-2xl p-8 shadow-2xl max-w-md w-full">
-                    {isWinner ? (
-                        <>
-                            <div className="text-6xl mb-4">🏆</div>
-                            <h1 className="text-4xl font-bold text-yellow-500 mb-2">
-                                YOU WIN!
-                            </h1>
-                            <p className="text-gray-600 mb-6">
-                                Congratulations, {playerName}!
-                            </p>
-                        </>
-                    ) : (
-                        <>
-                            <div className="text-6xl mb-4">{room.terminatedAt ? '⏱️' : '😓'}</div>
-                            <h1 className="text-3xl font-bold text-gray-700 mb-2">
-                                {room.terminatedAt ? "Time's Up!" : 'Game Over'}
-                            </h1>
-                            {room.terminatedAt ? (
-                                <p className="text-gray-600 mb-2">
-                                    The game was ended by admin
-                                </p>
-                            ) : (
-                                <p className="text-gray-600 mb-2">
-                                    {winner?.name} won the game!
-                                </p>
-                            )}
-                            <p className="text-2xl font-bold text-purple-600 mb-6">
-                                Your Score: {finalScore}%
-                            </p>
-                        </>
-                    )}
+            <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center p-4">
+                <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full text-center">
+                    <div className="text-6xl mb-4">
+                        {isWinner ? '🏆' : '🎯'}
+                    </div>
+
+                    <h1 className="text-3xl font-bold mb-2">
+                        {isWinner ? 'You Won!' : 'Game Over'}
+                    </h1>
+
+                    <p className="text-xl text-gray-600 mb-6">
+                        Final Score: <span className="font-bold text-purple-600">{finalScore}%</span>
+                    </p>
 
                     <p className="text-sm text-gray-500 mb-4 italic">
                         Waiting for admin to end session...
@@ -193,10 +226,36 @@ export const PlayerPage = () => {
         );
     }
 
-    // Playing state - show game board
+    // Playing state - get game instance
+    const game = gameRegistry.get(room.config.gameId);
+    if (!game) {
+        return (
+            <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+                <div className="text-center text-white">
+                    <h1 className="text-2xl mb-4">Game "{room.config.gameId}" not found</h1>
+                    <button
+                        onClick={() => navigate('/')}
+                        className="px-6 py-2 bg-purple-600 rounded-lg hover:bg-purple-700"
+                    >
+                        Go Home
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
     const player = room.players?.[playerId];
-    const initialBoard = player?.currentBoardString || room.config.puzzleString;
+    // eslint-disable-next-line react-hooks/purity
     const gameStartTime = room.startTime || Date.now();
+
+    // Get game states
+    const initialStateString = room.config.puzzleString!;
+    const solutionStateString = room.config.solutionString!;
+    const currentStateString = player?.currentGameState || player?.currentBoardString || initialStateString;
+
+    const initialState = new SudokuState(initialStateString);
+    const solution = new SudokuState(solutionStateString);
+    const currentState = new SudokuState(currentStateString);
 
     // Extract powerup data
     const powerupConfig = room.config.powerupConfig;
@@ -205,35 +264,23 @@ export const PlayerPage = () => {
     const sharedPowerupPool = room.sharedPowerupPool;
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-orange-300 via-pink-400 to-purple-500 py-6 px-4">
-            {/* Header */}
-            <div className="text-center mb-4">
-                <h1 className="text-3xl font-black text-white mb-1 drop-shadow-lg">
-                    🎮 SUDOKU PARTY! 🎊
-                </h1>
-                <p className="text-white font-bold drop-shadow-md">
-                    Room: <span className="font-mono font-black bg-white/30 px-3 py-1 rounded-lg">{roomCode}</span> •
-                    Player: <span className="font-black bg-white/30 px-3 py-1 rounded-lg">{playerName}</span>
-                </p>
-            </div>
-
-            {/* Game Board */}
-            <PlayerBoard
-                puzzleString={room.config.puzzleString}
-                solutionString={room.config.solutionString}
-                initialBoard={initialBoard}
-                roomCode={roomCode}
-                playerId={playerId}
-                playerName={playerName}
-                players={room.players || {}}
-                gameStartTime={gameStartTime}
-                timeLimit={room.config.timeLimit}
-                powerupInventory={powerupInventory}
-                sharedPowerupPool={sharedPowerupPool}
-                isGlobalMode={isGlobalMode || false}
-                onGameEnd={handleGameEnd}
-            />
-        </div>
+        <GameBoard
+            game={game}
+            initialState={initialState}
+            solution={solution}
+            currentState={currentState}
+            roomCode={roomCode}
+            playerId={playerId}
+            playerName={playerName}
+            players={room.players || {}}
+            gameStartTime={gameStartTime}
+            timeLimitMinutes={room.config.timeLimit}
+            completionPercentage={player?.completionPercentage || 0}
+            powerupInventory={powerupInventory}
+            sharedPowerupPool={sharedPowerupPool}
+            isGlobalMode={isGlobalMode || false}
+            onMove={handleMove}
+        />
     );
 };
 

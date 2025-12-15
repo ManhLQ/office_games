@@ -32,7 +32,7 @@ export const SudokuGrid: React.FC<SudokuGridProps> = ({
   const grid = state.getGrid();
 
   return (
-    <div className="grid grid-cols-9 gap-0 border-2 border-gray-800 bg-white">
+    <div className="grid grid-cols-9 gap-0 border-2 border-gray-800 bg-white w-fit mx-auto">
       {grid.map((row, rowIndex) =>
         row.map((cell, colIndex) => {
           const isEditable = initialState.getCell(rowIndex, colIndex) === 0;

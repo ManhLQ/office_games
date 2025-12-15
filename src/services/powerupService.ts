@@ -221,7 +221,7 @@ export async function usePowerup(
   const updates: Record<string, unknown> = {};
 
   // Determine duration based on powerup type
-  const durationMs = powerupType === 'hint' ? 0 : 5000; // Fog and Peep: 5 seconds, Hint: instant
+  const durationMs = powerupType === 'hint' ? 3000 : 5000; // Hint: 3 seconds, Fog and Peep: 5 seconds
 
   // Set active powerup
   const activePowerup: ActivePowerup = {
@@ -229,6 +229,11 @@ export async function usePowerup(
     startedAt: Date.now(),
     durationMs,
   };
+
+  // For hint powerup, we need to calculate the hint cell now
+  // This is a placeholder - the actual calculation should be done in the component
+  // For now, we'll let the component calculate it, but we need to pass game state here
+  // TODO: Calculate hint cell here to avoid re-calculation on every render
 
   updates[
     `rooms/${roomCode}/players/${playerId}/powerups/activePowerup`

@@ -19,8 +19,9 @@ export type PowerupInventory = Record<PowerupType, number>;
 // Active powerup state
 export interface ActivePowerup {
   type: PowerupType;
-  startedAt: number; // timestamp
-  durationMs: number; // duration in milliseconds
+  startedAt: number; // timestamp when activated
+  durationMs: number; // how long it lasts
+  hintCell?: { row: number; col: number; value: number }; // For hint powerup
 }
 
 // Powerup configuration (admin-set)
@@ -46,21 +47,36 @@ export interface SharedPowerupPool {
 
 // Room configuration
 export interface RoomConfig {
+  gameId: string; // e.g., 'sudoku', 'chess'
   difficulty: Difficulty;
-  puzzleString: string; // 81 characters, '0' for empty cells
-  solutionString: string; // 81 characters, the answer key
-  powerupConfig?: PowerupConfig; // optional powerup configuration
   timeLimit: number; // game time limit in minutes (default: 15)
+  powerupConfig?: PowerupConfig; // optional powerup configuration
+
+  // Legacy Sudoku fields (for backwards compatibility during migration)
+  puzzleString?: string; // DEPRECATED: use gameConfig.initialState
+  solutionString?: string; // DEPRECATED: use gameConfig.solution
+
+  // Game-specific configuration (serialized)
+  gameConfig?: {
+    initialStateString: string; // Serialized initial state
+    solutionStateString: string; // Serialized solution state
+    metadata?: Record<string, unknown>; // Game-specific metadata
+  };
 }
 
 // Player data
 export interface Player {
   name: string;
-  currentBoardString: string; // 81 characters, player's live inputs
-  finalScore: number | null;
   status: PlayerStatus;
+  finalScore: number | null;
   completionPercentage: number; // 0-100, calculated periodically
   powerups?: PlayerPowerups; // optional powerup state
+
+  // Legacy Sudoku field (for backwards compatibility)
+  currentBoardString?: string; // DEPRECATED: use currentGameState
+
+  // Game-agnostic current state (serialized)
+  currentGameState?: string; // Serialized current state
 }
 
 // Players map
@@ -72,6 +88,7 @@ export interface Players {
 export interface Room {
   status: RoomStatus;
   config: RoomConfig;
+  adminId: string; // Player ID of the room creator/admin
   winnerId: string | null;
   players: Players;
   startTime: number | null; // timestamp when game started

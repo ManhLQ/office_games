@@ -191,6 +191,7 @@ export const SpectatorDashboard: React.FC<SpectatorDashboardProps> = ({
                     let powerupDisplay = null;
 
                     if (activePowerup) {
+                        // eslint-disable-next-line react-hooks/purity
                         const elapsed = Date.now() - activePowerup.startedAt;
                         const remaining = Math.max(0, Math.ceil((activePowerup.durationMs - elapsed) / 1000));
                         const icons = { hint: '💡', fog: '🌫️', peep: '👀' };
@@ -230,7 +231,7 @@ export const SpectatorDashboard: React.FC<SpectatorDashboardProps> = ({
                             <MiniBoard
                                 playerName={player.name}
                                 puzzleString={puzzleString}
-                                liveInput={player.currentBoardString}
+                                liveInput={player.currentGameState || player.currentBoardString || puzzleString}
                                 solutionString={solutionString}
                                 showErrors={true}
                                 isWinner={playerId === winnerId}
@@ -256,7 +257,7 @@ export const SpectatorDashboard: React.FC<SpectatorDashboardProps> = ({
                         🏆 Final Scoreboard
                     </h2>
                     <div className="space-y-3">
-                        {sortedPlayers.map(([playerId, player], _) => (
+                        {sortedPlayers.map(([playerId, player]) => (
                             <div
                                 key={playerId}
                                 className={`

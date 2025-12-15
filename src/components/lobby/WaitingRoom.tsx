@@ -6,6 +6,7 @@ interface WaitingRoomProps {
     roomCode: string;
     players: Players;
     isAdmin: boolean;
+    playerId?: string; // For server-side validation
 }
 
 /**
@@ -15,12 +16,19 @@ export const WaitingRoom: React.FC<WaitingRoomProps> = ({
     roomCode,
     players,
     isAdmin,
+    playerId,
 }) => {
     const playerList = Object.values(players);
     const canStart = playerList.length >= 2;
 
     const handleStartGame = async () => {
-        await updateRoomStatus(roomCode, 'playing');
+        try {
+            // Pass playerId for server-side admin validation
+            await updateRoomStatus(roomCode, 'playing', playerId);
+        } catch (error) {
+            console.error('Failed to start game:', error);
+            alert(error instanceof Error ? error.message : 'Failed to start game');
+        }
     };
 
     return (
