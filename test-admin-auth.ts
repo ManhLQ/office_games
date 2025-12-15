@@ -9,6 +9,7 @@ import { updateRoomStatus, createRoom } from '../src/services/roomService';
 import type { Room } from '../src/types';
 
 // Mock Firebase for testing
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const mockRooms: Record<string, Room> = {};
 
 // Test 1: Admin can start game
@@ -64,6 +65,7 @@ async function testRoomStoresAdminId() {
   console.log('\n🧪 Test 3: Room stores adminId correctly');
 
   try {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { roomCode, adminId } = await createRoom('easy');
 
     // In a real test, we'd fetch the room from Firebase
@@ -124,6 +126,7 @@ function testWaitingRoomPassesPlayerId() {
 }
 
 // Run all tests
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function runAllTests() {
   console.log('🔒 ADMIN AUTHORIZATION SECURITY TEST SUITE');
   console.log('==========================================\n');

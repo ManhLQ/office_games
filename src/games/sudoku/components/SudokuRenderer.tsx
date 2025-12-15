@@ -49,24 +49,33 @@ export class SudokuRenderer implements IGameRenderer {
     const initialGrid = initialState.getGrid();
 
     return React.createElement('div', {
-      className: 'sudoku-mini-board bg-white p-2 rounded border border-gray-300'
+      className: 'sudoku-mini-board bg-white p-1 rounded border-2 border-gray-800 inline-block'
     },
-      // Grid container
+      // Grid container - inline-grid to prevent stretching
       React.createElement('div', {
-        className: 'grid grid-cols-9 gap-0 border border-gray-600',
-        style: { fontSize: '8px', lineHeight: '1' }
+        className: 'inline-grid',
+        style: {
+          gridTemplateColumns: 'repeat(9, 16px)',
+          gridTemplateRows: 'repeat(9, 16px)',
+          gap: 0
+        }
       },
         grid.map((row, r) =>
           row.map((cell, c) => {
             const isInitial = initialGrid[r][c] !== 0;
+            const shouldRenderBlockBorderRight = (c + 1) % 3 === 0 && c < 8;
+            const shouldRenderBlockBorderBottom = (r + 1) % 3 === 0 && r < 8;
+
             return React.createElement('div', {
               key: `${r}-${c}`,
-              className: `w-3 h-3 flex items-center justify-center border border-gray-300 ${isInitial ? 'font-bold text-gray-900' : 'text-blue-600'
-                }`,
-              style: {
-                borderRightWidth: (c + 1) % 3 === 0 && c < 8 ? '2px' : '1px',
-                borderBottomWidth: (r + 1) % 3 === 0 && r < 8 ? '2px' : '1px'
-              }
+              className: `
+                flex items-center justify-center text-[8px] font-semibold
+                border border-gray-300
+                ${shouldRenderBlockBorderRight ? 'border-r-2 border-r-gray-800' : ''}
+                ${shouldRenderBlockBorderBottom ? 'border-b-2 border-b-gray-800' : ''}
+                ${isInitial ? 'bg-white text-gray-900' : 'bg-gray-50 text-blue-600'}
+              `,
+              style: { width: '16px', height: '16px' }
             }, cell !== 0 ? String(cell) : '');
           })
         ).flat()

@@ -85,7 +85,8 @@ export const PlayerPage = () => {
 
     // Handle move
     const handleMove = useCallback(async (move: IGameMove) => {
-        if (!room || !roomCode || !move.row || !move.col) return;
+        // CRITICAL: Check for undefined/null, not falsy (0 is valid for row/col!)
+        if (!room || !roomCode || move.row === undefined || move.row === null || move.col === undefined || move.col === null) return;
 
         const game = gameRegistry.get(room.config.gameId);
         if (!game) return;
@@ -105,19 +106,19 @@ export const PlayerPage = () => {
         // Update Firebase
         await updatePlayerState(roomCode, playerId, newState);
 
-        // Update completion percentage
+        // Update completion percentage - pass solution from room config
         const initialStateString = room.config.puzzleString!;
         const initialState = new SudokuState(initialStateString);
-        await updatePlayerCompletion(roomCode, playerId, game, newState, initialState);
+        const solutionString = room.config.solutionString!;
+        const solution = new SudokuState(solutionString);
+        await updatePlayerCompletion(roomCode, playerId, game, newState, initialState, solution);
 
         // Check if game is complete and correct
         if (game.isGameComplete(newState)) {
-            const solutionString = room.config.solutionString!;
-            const solution = new SudokuState(solutionString);
             const isCorrect = game.isGameCorrect(newState, solution);
 
             if (isCorrect) {
-                const score = game.calculateScore(newState, initialState);
+                const score = game.calculateScore(newState, initialState, solution);
                 await submitAnswer(roomCode, playerId, true, score);
                 handleGameEnd(true, score);
             }

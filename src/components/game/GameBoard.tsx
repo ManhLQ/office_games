@@ -5,6 +5,7 @@ import type { IGame } from '../../games/core/interfaces/IGame';
 import type { IGameState } from '../../games/core/interfaces/IGameState';
 import type { IGameMove } from '../../games/core/interfaces/IGameMove';
 import type { Players, PowerupInventory, SharedPowerupPool, PowerupType } from '../../types';
+import { SudokuState } from '../../games/sudoku/SudokuState';
 import { useGameTimer } from '../../hooks/useGameTimer';
 import { useCellSelection } from '../../hooks/useCellSelection';
 import { usePowerupEffects } from '../../hooks/usePowerupEffects';
@@ -82,14 +83,23 @@ export const GameBoard: React.FC<GameBoardProps> = ({
     selectedCell,
     hoveredCell,
     highlightedValue,
-    selectCell,
+    selectCell: baseCellSelect,
+    setHighlightedValue,
     handleKeyDown
   } = useCellSelection({
     gridSize: 9, // TODO: Make this game-specific
-    onCellSelect: (row, col) => {
-      console.log('Cell selected:', row, col);
-    }
   });
+
+  // Wrap selectCell to add highlighting
+  const selectCell = useCallback((row: number, col: number) => {
+    baseCellSelect(row, col);
+    // Set highlighted value to the number in the clicked cell
+    const currentGrid = (currentState as SudokuState).getGrid();
+    if (currentGrid) {
+      const cellValue = currentGrid[row][col];
+      setHighlightedValue(cellValue !== 0 ? cellValue : null);
+    }
+  }, [baseCellSelect, currentState, setHighlightedValue]);
 
   const {
     activePowerup,
@@ -109,9 +119,9 @@ export const GameBoard: React.FC<GameBoardProps> = ({
     if (activePowerup?.type !== 'hint' || activePowerup.hintCell) return;
 
     // Calculate hint cell based on current game state
-    const currentGrid = (currentState as any).getGrid?.();
-    const initialGrid = (initialState as any).getGrid?.();
-    const solutionGrid = (solution as any).getGrid?.();
+    const currentGrid = (currentState as SudokuState).getGrid();
+    const initialGrid = (initialState as SudokuState).getGrid();
+    const solutionGrid = (solution as SudokuState).getGrid();
 
     if (!currentGrid || !initialGrid || !solutionGrid) return;
 
@@ -161,6 +171,13 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   // Handle input from game controls
   const handleInput = useCallback((value: number | string) => {
     if (selectedCell) {
+      // CRITICAL: Check if cell is editable (not pre-filled)
+      const initialGrid = (initialState as SudokuState).getGrid();
+      if (initialGrid && initialGrid[selectedCell.row][selectedCell.col] !== 0) {
+        // Cell is pre-filled, cannot edit
+        return;
+      }
+
       const move: IGameMove = {
         row: selectedCell.row,
         col: selectedCell.col,
@@ -168,10 +185,17 @@ export const GameBoard: React.FC<GameBoardProps> = ({
       };
       onMove(move);
     }
-  }, [selectedCell, onMove]);
+  }, [selectedCell, onMove, initialState]);
 
   const handleClear = useCallback(() => {
     if (selectedCell) {
+      // CRITICAL: Check if cell is editable (not pre-filled)
+      const initialGrid = (initialState as SudokuState).getGrid();
+      if (initialGrid && initialGrid[selectedCell.row][selectedCell.col] !== 0) {
+        // Cell is pre-filled, cannot clear
+        return;
+      }
+
       const move: IGameMove = {
         row: selectedCell.row,
         col: selectedCell.col,
@@ -179,7 +203,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
       };
       onMove(move);
     }
-  }, [selectedCell, onMove]);
+  }, [selectedCell, onMove, initialState]);
 
   // Get powerup counts
   const powerupCounts: Record<PowerupType, number> = {

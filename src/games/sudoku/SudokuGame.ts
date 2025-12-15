@@ -27,11 +27,17 @@ export class SudokuGame implements IGame {
   readonly supportsPowerups = true;
   readonly difficultyLevels = ['easy', 'medium', 'hard', 'expert'];
 
+  // Store the current game config metadata
+  private currentMetadata: { puzzleString: string; solutionString: string } | null = null;
+
   /**
    * Create a new Sudoku game instance
    */
   createGame(difficulty: string): IGameConfig {
     const { puzzleString, solutionString } = generateSudokuBoard(difficulty as Difficulty);
+
+    // Store metadata for later use
+    this.currentMetadata = { puzzleString, solutionString };
 
     return {
       gameId: this.id,
@@ -73,11 +79,35 @@ export class SudokuGame implements IGame {
 
   /**
    * Calculate completion score
+   * @param currentState Current game state
+   * @param initialState Initial puzzle state
+   * @param solution Solution state (optional, will try to get from metadata if not provided)
    */
-  calculateScore(currentState: IGameState, initialState: IGameState): number {
+  calculateScore(currentState: IGameState, initialState: IGameState, solution?: IGameState): number {
     const currentBoard = currentState.serialize();
     const puzzleString = initialState.serialize();
-    const solutionString = this.getSolutionFromMetadata();
+
+    // Get solution string - prefer passed solution, fallback to metadata
+    let solutionString: string;
+    if (solution) {
+      solutionString = solution.serialize();
+    } else {
+      // Fallback to metadata (won't work in stateless scenarios)
+      solutionString = this.getSolutionFromMetadata();
+      if (!solutionString) {
+        console.error('SudokuGame: No solution available for score calculation');
+        return 0;
+      }
+    }
+
+    // Validate that solution matches puzzle pre-filled cells
+    for (let i = 0; i < 81; i++) {
+      if (puzzleString[i] !== '0' && puzzleString[i] !== solutionString[i]) {
+        console.error('SudokuGame: Solution mismatch at position', i,
+          'puzzle:', puzzleString[i], 'solution:', solutionString[i]);
+        return 0;
+      }
+    }
 
     return getSudokuCompletionPercentage(currentBoard, puzzleString, solutionString);
   }
@@ -111,13 +141,15 @@ export class SudokuGame implements IGame {
   // ===== Helper methods =====
 
   /**
-   * Get solution string (for compatibility)
-   * In a real implementation, solution would be passed through config
+   * Get solution string from metadata
+   * CRITICAL: This must return the actual solution for the current puzzle!
    */
   private getSolutionFromMetadata(): string {
-    // This is a temporary hack - in production, solution should be
-    // stored in the game config metadata
-    return '534678912672195348198342567859761423426853791713924856961537284287419635345286179';
+    if (!this.currentMetadata) {
+      console.error('SudokuGame: No metadata available');
+      return '';
+    }
+    return this.currentMetadata.solutionString;
   }
 
   /**

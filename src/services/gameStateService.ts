@@ -36,15 +36,17 @@ export async function updatePlayerState(
  * @param game Game instance
  * @param currentState Current game state
  * @param initialState Initial game state
+ * @param solution Solution state
  */
 export async function updatePlayerCompletion(
   roomCode: string,
   playerId: string,
   game: IGame,
   currentState: IGameState,
-  initialState: IGameState
+  initialState: IGameState,
+  solution: IGameState
 ): Promise<void> {
-  const completionPercentage = game.calculateScore(currentState, initialState);
+  const completionPercentage = game.calculateScore(currentState, initialState, solution);
   const playerRef = ref(database, `rooms/${roomCode}/players/${playerId}`);
 
   await update(playerRef, {

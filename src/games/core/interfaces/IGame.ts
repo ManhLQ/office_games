@@ -54,12 +54,13 @@ export interface IGame {
   applyMove(state: IGameState, move: IGameMove): IGameState;
 
   /**
-   * Calculate completion score for the current state
-   * @param state Current game state
+   * Calculate the current score/completion percentage
+   * @param currentState Current game state
    * @param initialState Initial game state
-   * @returns Score as percentage (0-100)
+   * @param solution Optional solution state (recommended to pass for accurate scoring)
+   * @returns Score as a number (typically 0-100 for percentage)
    */
-  calculateScore(state: IGameState, initialState: IGameState): number;
+  calculateScore(currentState: IGameState, initialState: IGameState, solution?: IGameState): number;
 
   /**
    * Check if the game is complete (all cells filled, checkmate, etc.)
