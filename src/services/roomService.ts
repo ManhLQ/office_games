@@ -1,19 +1,21 @@
 import { ref, set, update, get } from 'firebase/database';
 import { database } from '../config/firebase';
 import type { Room, RoomConfig, Player, RoomStatus, Difficulty, PowerupConfig } from '../types';
-import { generateBoard } from '../utils/sudoku';
+import { gameRegistry } from '../games/core/GameRegistry';
 import { generateRoomCode, generatePlayerId } from '../utils/room';
 import { allocatePowerups, createEmptyInventory } from './powerupService';
 
 /**
  * Creates a new game room
  * @param difficulty - The difficulty level for the puzzle
+ * @param gameId - The game to play (default: 'sudoku')
  * @param powerupConfig - Optional powerup configuration
  * @param timeLimit - Game time limit in minutes (default: 15)
  * @returns The room code and admin player ID
  */
 export async function createRoom(
   difficulty: Difficulty,
+  gameId: string = 'sudoku',
   powerupConfig?: PowerupConfig,
   timeLimit: number = 15
 ): Promise<{
@@ -22,17 +24,27 @@ export async function createRoom(
 }> {
   const roomCode = generateRoomCode();
   const adminId = generatePlayerId();
-  const { puzzleString, solutionString } = generateBoard(difficulty);
+
+  // Get game from registry and create game config
+  const game = gameRegistry.get(gameId);
+  if (!game) {
+    throw new Error(`Game "${gameId}" not found in registry`);
+  }
+
+  const gameConfig = game.createGame(difficulty);
+  const puzzleString = gameConfig.initialState.serialize();
+  const solutionString = gameConfig.solution.serialize();
 
   const roomData: Room = {
     status: 'waiting',
     config: {
-      gameId: 'sudoku', // TODO: Make this configurable when adding game selection UI
+      gameId, // Use provided gameId
       difficulty,
       puzzleString,
       solutionString,
-      powerupConfig,
       timeLimit,
+      // Only include powerupConfig if it's defined (Firebase doesn't allow undefined)
+      ...(powerupConfig && { powerupConfig })
     },
     adminId, // SECURITY: Store admin ID for server-side validation
     winnerId: null,
@@ -86,7 +98,8 @@ export async function joinRoom(
 
   const playerData: Player = {
     name: playerName,
-    currentBoardString: room.config.puzzleString,
+    currentBoardString: room.config.puzzleString, // Legacy field
+    currentGameState: room.config.puzzleString, // New field - serialized initial state
     finalScore: null,
     status: 'playing',
     completionPercentage: 0,

@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MiniBoard } from './MiniBoard';
 import { terminateGame, deleteRoom } from '../../services/roomService';
 import type { Players, PowerupType } from '../../types';
+import { gameRegistry } from '../../games/core/GameRegistry';
+import { SudokuState } from '../../games/sudoku/SudokuState';
+import { CrosswordState } from '../../games/crossword/CrosswordState';
 
 // Powerup metadata
 const POWERUP_META: Record<PowerupType, { name: string; icon: string }> = {
@@ -21,6 +23,7 @@ interface SpectatorDashboardProps {
     isAdmin?: boolean;
     roomCode?: string;
     timeLimit?: number; // in minutes
+    gameId: string; // Game type identifier
 }
 
 /**
@@ -36,6 +39,7 @@ export const SpectatorDashboard: React.FC<SpectatorDashboardProps> = ({
     isAdmin = false,
     roomCode = '',
     timeLimit = 15,
+    gameId,
 }) => {
     const navigate = useNavigate();
     const playerEntries = Object.entries(players);
@@ -228,16 +232,37 @@ export const SpectatorDashboard: React.FC<SpectatorDashboardProps> = ({
                                 </div>
                             )}
 
-                            <MiniBoard
-                                playerName={player.name}
-                                puzzleString={puzzleString}
-                                liveInput={player.currentGameState || player.currentBoardString || puzzleString}
-                                solutionString={solutionString}
-                                showErrors={true}
-                                isWinner={playerId === winnerId}
-                                finalScore={player.finalScore}
-                                completionPercentage={player.completionPercentage || 0}
-                            />
+                            {/* Render mini board using game renderer */}
+                            {(() => {
+                                const game = gameRegistry.get(gameId);
+                                if (!game) return null;
+
+                                const renderer = game.getRenderer();
+                                let initialState, currentState, solution;
+
+                                if (gameId === 'sudoku') {
+                                    initialState = new SudokuState(puzzleString);
+                                    currentState = new SudokuState(player.currentGameState || player.currentBoardString || puzzleString);
+                                    solution = new SudokuState(solutionString);
+                                } else if (gameId === 'crossword') {
+                                    initialState = CrosswordState.deserialize(puzzleString);
+                                    currentState = CrosswordState.deserialize(player.currentGameState || player.currentBoardString || puzzleString);
+                                    solution = CrosswordState.deserialize(solutionString);
+                                } else {
+                                    return null;
+                                }
+
+                                return renderer.renderMiniBoard({
+                                    playerName: player.name,
+                                    initialState,
+                                    currentState,
+                                    solution,
+                                    showErrors: true,
+                                    isWinner: playerId === winnerId,
+                                    finalScore: player.finalScore,
+                                    completionPercentage: player.completionPercentage || 0
+                                });
+                            })()}
                         </div>
                     );
                 })}

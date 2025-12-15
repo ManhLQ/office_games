@@ -5,8 +5,9 @@ import { WaitingRoom } from '../components/lobby';
 import { GameBoard } from '../components/game/GameBoard';
 import { gameRegistry } from '../games/core/GameRegistry';
 import type { IGameMove } from '../games/core/interfaces/IGameMove';
+import type { IGameState } from '../games/core/interfaces/IGameState';
 import { SudokuState } from '../games/sudoku/SudokuState';
-import { SudokuMove } from '../games/sudoku/SudokuMove';
+import { CrosswordState } from '../games/crossword/CrosswordState';
 import { submitAnswer } from '../services/roomService';
 import { updatePlayerState, updatePlayerCompletion } from '../services/gameStateService';
 
@@ -94,23 +95,39 @@ export const PlayerPage = () => {
         const player = room.players?.[playerId];
         if (!player) return;
 
-        // Get current state
+        // Get current state - use game-specific deserialization
         const currentStateString = player.currentGameState || player.currentBoardString || room.config.puzzleString;
-        const currentState = new SudokuState(currentStateString!);
+        let currentState: IGameState;
 
-        // Apply move - convert value to number if it's a string
-        const numValue = typeof move.value === 'string' ? parseInt(move.value, 10) : (move.value || 0);
-        const sudokuMove = new SudokuMove(move.row, move.col, numValue);
-        const newState = game.applyMove(currentState, sudokuMove) as SudokuState;
+        if (room.config.gameId === 'sudoku') {
+            currentState = new SudokuState(currentStateString!);
+        } else if (room.config.gameId === 'crossword') {
+            currentState = CrosswordState.deserialize(currentStateString!);
+        } else {
+            console.error('Unknown game type:', room.config.gameId);
+            return;
+        }
+
+        // Apply move using game's applyMove method
+        const newState = game.applyMove(currentState, move);
 
         // Update Firebase
         await updatePlayerState(roomCode, playerId, newState);
 
-        // Update completion percentage - pass solution from room config
-        const initialStateString = room.config.puzzleString!;
-        const initialState = new SudokuState(initialStateString);
-        const solutionString = room.config.solutionString!;
-        const solution = new SudokuState(solutionString);
+        // Update completion percentage - deserialize initial and solution states
+        let initialState: IGameState;
+        let solution: IGameState;
+
+        if (room.config.gameId === 'sudoku') {
+            initialState = new SudokuState(room.config.puzzleString!);
+            solution = new SudokuState(room.config.solutionString!);
+        } else if (room.config.gameId === 'crossword') {
+            initialState = CrosswordState.deserialize(room.config.puzzleString!);
+            solution = CrosswordState.deserialize(room.config.solutionString!);
+        } else {
+            return;
+        }
+
         await updatePlayerCompletion(roomCode, playerId, game, newState, initialState, solution);
 
         // Check if game is complete and correct
@@ -249,14 +266,31 @@ export const PlayerPage = () => {
     // eslint-disable-next-line react-hooks/purity
     const gameStartTime = room.startTime || Date.now();
 
-    // Get game states
+    // Get game states - use game-specific deserialization
     const initialStateString = room.config.puzzleString!;
     const solutionStateString = room.config.solutionString!;
     const currentStateString = player?.currentGameState || player?.currentBoardString || initialStateString;
 
-    const initialState = new SudokuState(initialStateString);
-    const solution = new SudokuState(solutionStateString);
-    const currentState = new SudokuState(currentStateString);
+    // Deserialize states based on game type
+    let initialState: IGameState;
+    let solution: IGameState;
+    let currentState: IGameState;
+
+    if (room.config.gameId === 'sudoku') {
+        initialState = new SudokuState(initialStateString);
+        solution = new SudokuState(solutionStateString);
+        currentState = new SudokuState(currentStateString);
+    } else if (room.config.gameId === 'crossword') {
+        initialState = CrosswordState.deserialize(initialStateString);
+        solution = CrosswordState.deserialize(solutionStateString);
+        currentState = CrosswordState.deserialize(currentStateString);
+    } else {
+        // Fallback: try to use game's createGame method
+        const gameConfig = game.createGame(room.config.difficulty);
+        initialState = gameConfig.initialState;
+        solution = gameConfig.solution;
+        currentState = gameConfig.initialState; // Use initial as fallback
+    }
 
     // Extract powerup data
     const powerupConfig = room.config.powerupConfig;

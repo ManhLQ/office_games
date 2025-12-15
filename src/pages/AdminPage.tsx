@@ -96,6 +96,7 @@ export const AdminPage = () => {
             isAdmin={isAdmin}
             roomCode={roomCode}
             timeLimit={room.config.timeLimit}
+            gameId={room.config.gameId}
         />
     );
 };

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import type { Difficulty, PowerupConfig, PowerupType } from '../../types';
 import { createRoom } from '../../services/roomService';
+import { gameRegistry } from '../../games/core/GameRegistry';
 
 interface CreateRoomProps {
     onRoomCreated: (roomCode: string, adminId: string) => void;
@@ -11,6 +12,7 @@ interface CreateRoomProps {
  */
 export const CreateRoom: React.FC<CreateRoomProps> = ({ onRoomCreated }) => {
     const [difficulty, setDifficulty] = useState<Difficulty>('medium');
+    const [gameId, setGameId] = useState<string>('sudoku');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -41,7 +43,7 @@ export const CreateRoom: React.FC<CreateRoomProps> = ({ onRoomCreated }) => {
                 };
             }
 
-            const { roomCode, adminId } = await createRoom(difficulty, powerupConfig, timeLimit);
+            const { roomCode, adminId } = await createRoom(difficulty, gameId, powerupConfig, timeLimit);
             onRoomCreated(roomCode, adminId);
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to create room');
@@ -84,6 +86,29 @@ export const CreateRoom: React.FC<CreateRoomProps> = ({ onRoomCreated }) => {
               `}
                         >
                             {label}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            {/* Game Selection */}
+            <div className="mb-6">
+                <label className="block text-base font-semibold text-slate-700 mb-4">
+                    Select Game
+                </label>
+                <div className="grid grid-cols-2 gap-4">
+                    {gameRegistry.getAll().map((game) => (
+                        <button
+                            key={game.id}
+                            onClick={() => setGameId(game.id)}
+                            className={`
+                p-4 rounded-xl font-semibold text-base transition-all duration-200
+                ${gameId === game.id
+                                    ? 'bg-teal-600 text-white ring-2 ring-teal-600 shadow-lg'
+                                    : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200'}
+              `}
+                        >
+                            {game.name}
                         </button>
                     ))}
                 </div>

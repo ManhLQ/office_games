@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { ref, update } from 'firebase/database';
 import { database } from '../../config/firebase';
 import type { IGame } from '../../games/core/interfaces/IGame';
@@ -114,26 +114,41 @@ export const GameBoard: React.FC<GameBoardProps> = ({
     isGlobalMode
   });
 
-  // Calculate and store hint cell when hint powerup is activated
-  useEffect(() => {
-    if (activePowerup?.type !== 'hint' || activePowerup.hintCell) return;
+  const [hintCell, setHintCell] = useState<{ row: number; col: number; value: number } | null>(null);
 
-    // Calculate hint cell based on current game state
+  // Calculate hint cell when hint powerup is active
+  useEffect(() => {
+    if (!activePowerup || activePowerup.type !== 'hint' || !selectedCell) {
+      setHintCell(null);
+      return;
+    }
+
+    // Only calculate hint for Sudoku (has getGrid method returning number[][])
+    // For other games, hint powerup will work differently
+    if (game.id !== 'sudoku') {
+      setHintCell(null);
+      return;
+    }
+
+    // Sudoku-specific hint logic
     const currentGrid = (currentState as SudokuState).getGrid();
     const initialGrid = (initialState as SudokuState).getGrid();
     const solutionGrid = (solution as SudokuState).getGrid();
 
-    if (!currentGrid || !initialGrid || !solutionGrid) return;
+    if (!currentGrid || !initialGrid || !solutionGrid) {
+      setHintCell(null);
+      return;
+    }
 
     // Check if selected cell is empty and editable
     const isSelectedEmpty = selectedCell &&
       initialGrid[selectedCell.row][selectedCell.col] === 0 &&
       currentGrid[selectedCell.row][selectedCell.col] === 0;
 
-    let hintCell;
+    let calculatedHintCell;
     if (isSelectedEmpty && selectedCell) {
       // Show hint at selected empty cell
-      hintCell = {
+      calculatedHintCell = {
         row: selectedCell.row,
         col: selectedCell.col,
         value: solutionGrid[selectedCell.row][selectedCell.col]
@@ -150,9 +165,8 @@ export const GameBoard: React.FC<GameBoardProps> = ({
       }
 
       if (emptyCells.length > 0) {
-        // Pick random empty cell
         const randomCell = emptyCells[Math.floor(Math.random() * emptyCells.length)];
-        hintCell = {
+        calculatedHintCell = {
           row: randomCell.row,
           col: randomCell.col,
           value: solutionGrid[randomCell.row][randomCell.col]
@@ -160,13 +174,22 @@ export const GameBoard: React.FC<GameBoardProps> = ({
       }
     }
 
-    // Update Firebase with the calculated hint cell
-    if (hintCell) {
+    setHintCell(calculatedHintCell || null);
+  }, [activePowerup, selectedCell, currentState, initialState, solution, game.id]);
+
+  // Update Firebase with the calculated hint cell when it changes
+  useEffect(() => {
+    if (activePowerup?.type === 'hint' && hintCell) {
       update(ref(database), {
         [`rooms/${roomCode}/players/${playerId}/powerups/activePowerup/hintCell`]: hintCell
       });
+    } else if (activePowerup?.type === 'hint' && !hintCell && activePowerup.hintCell) {
+      // If hintCell becomes null locally but Firebase still has one, clear it
+      update(ref(database), {
+        [`rooms/${roomCode}/players/${playerId}/powerups/activePowerup/hintCell`]: null
+      });
     }
-  }, [activePowerup, currentState, initialState, solution, selectedCell, roomCode, playerId]);
+  }, [hintCell, activePowerup, roomCode, playerId]);
 
   // Handle input from game controls
   const handleInput = useCallback((value: number | string) => {
@@ -248,7 +271,6 @@ export const GameBoard: React.FC<GameBoardProps> = ({
             <CompletionProgress percentage={completionPercentage} />
           </div>
         </div>
-
         {/* Main content */}
         <div className="grid md:grid-cols-3 gap-4">
           {/* Game board - Left side (2 columns on desktop) */}

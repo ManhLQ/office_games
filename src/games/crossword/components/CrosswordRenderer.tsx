@@ -1,27 +1,22 @@
 import React from 'react';
 import type { IGameRenderer } from '../../core/interfaces/IGameRenderer';
 import type { PlayerBoardProps, MiniBoardProps, ControlsProps } from '../../core/interfaces/IGameRenderer';
+import { CrosswordPlayerBoard, CrosswordMiniBoard, CrosswordControls } from './CrosswordPlayerBoard';
 
 /**
  * Crossword game renderer
- * TODO: Implement full rendering
+ * Delegates to functional components that can use hooks
  */
 export class CrosswordRenderer implements IGameRenderer {
-  renderPlayerBoard(_props: PlayerBoardProps): React.ReactElement {
-    return React.createElement('div', { className: 'crossword-board' },
-      'Crossword Board - Coming Soon'
-    );
+  renderPlayerBoard(props: PlayerBoardProps): React.ReactElement {
+    return React.createElement(CrosswordPlayerBoard, props);
   }
 
-  renderMiniBoard(_props: MiniBoardProps): React.ReactElement {
-    return React.createElement('div', { className: 'crossword-mini-board' },
-      'Mini Board'
-    );
+  renderMiniBoard(props: MiniBoardProps): React.ReactElement {
+    return React.createElement(CrosswordMiniBoard, props);
   }
 
-  renderControls(_props: ControlsProps): React.ReactElement {
-    return React.createElement('div', { className: 'crossword-controls' },
-      'Controls'
-    );
+  renderControls(props: ControlsProps): React.ReactElement {
+    return React.createElement(CrosswordControls, props);
   }
 }

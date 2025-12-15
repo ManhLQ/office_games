@@ -29,9 +29,16 @@ export class CrosswordState implements IGameState {
   /**
    * Deserialize state from string
    */
-  deserialize(data: string): IGameState {
+  static deserialize(data: string): CrosswordState {
     const parsed = JSON.parse(data);
     return new CrosswordState(parsed.grid, parsed.clues, parsed.size);
+  }
+
+  /**
+   * Instance method for IGameState interface compatibility
+   */
+  deserialize(data: string): IGameState {
+    return CrosswordState.deserialize(data);
   }
 
   /**
