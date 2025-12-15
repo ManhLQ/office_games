@@ -3,16 +3,14 @@ import type { Players } from '../../types';
 import type { IGame } from '../../games/core/interfaces/IGame';
 import { CompletionProgress } from './CompletionProgress';
 import { SudokuState } from '../../games/sudoku/SudokuState';
+import { CrosswordState } from '../../games/crossword/CrosswordState';
 
 interface CompetitorsListProps {
-  /** Current player ID */
-  currentPlayerId: string;
-  /** All players in the room */
   players: Players;
-  /** Game instance for rendering mini boards */
+  currentPlayerId: string;
+  isPeepMode: boolean;
   game: IGame;
-  /** Whether in "peep" mode (show expanded view) */
-  isPeepMode?: boolean;
+  gameId: string; // Add gameId prop
 }
 
 /**
@@ -21,96 +19,98 @@ interface CompetitorsListProps {
  * Works with any game type
  */
 export const CompetitorsList: React.FC<CompetitorsListProps> = ({
-  currentPlayerId,
   players,
+  currentPlayerId,
+  isPeepMode,
   game,
-  isPeepMode = false
+  gameId
 }) => {
-  const competitors = Object.entries(players).filter(
+  const otherPlayers = Object.entries(players).filter(
     ([playerId]) => playerId !== currentPlayerId
   );
 
-  if (competitors.length === 0) {
+  if (otherPlayers.length === 0) {
     return (
-      <div className="text-center text-gray-500 py-4">
-        <p>No other players yet</p>
+      <div className="bg-white rounded-lg shadow-lg p-6">
+        <h2 className="text-xl font-bold text-gray-900 mb-4">Competitors</h2>
+        <p className="text-gray-500 text-center py-4">No other players yet</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-3">
-      <h3 className="text-sm font-bold text-gray-700">Competitors</h3>
-      {competitors.map(([playerId, player]) => {
-        const completionPercentage = player.completionPercentage || 0;
-        const isWinner = player.status === 'finished' && player.finalScore !== null && player.finalScore > 0;
+    <div className="bg-white rounded-lg shadow-lg p-6">
+      <h2 className="text-xl font-bold text-gray-900 mb-4">
+        Competitors ({otherPlayers.length})
+      </h2>
+      <div className="space-y-4">
+        {otherPlayers.map(([playerId, player]) => {
+          const isWinner = false; // We don't have winner info here
+          const completionPercentage = player.completionPercentage || 0;
 
-        return (
-          <div
-            key={playerId}
-            className={`
-              p-3 rounded-lg border-2 transition-all
-              ${isWinner
-                ? 'border-green-500 bg-green-50'
-                : 'border-gray-200 bg-white'}
-            `}
-          >
-            <div className="flex items-center justify-between mb-2">
-              <span className="font-bold text-gray-900">
-                {player.name}
-                {isWinner && <span className="ml-2 text-green-600">🏆</span>}
-              </span>
-              <span className="text-sm text-gray-600">
-                {completionPercentage}%
-              </span>
-            </div>
+          return (
+            <div key={playerId} className="border-b border-gray-200 pb-4 last:border-0">
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-semibold text-gray-900">{player.name}</span>
+              </div>
 
-            <CompletionProgress
-              percentage={completionPercentage}
-              showPercentage={false}
-            />
+              <CompletionProgress
+                percentage={completionPercentage}
+                showPercentage={false}
+              />
 
-            {isPeepMode && (() => {
-              try {
-                const currentStateStr = player.currentGameState || player.currentBoardString;
-                if (!currentStateStr) {
+              {isPeepMode && (() => {
+                try {
+                  const currentStateStr = player.currentGameState || player.currentBoardString;
+                  if (!currentStateStr) {
+                    return (
+                      <div className="mt-3 p-2 bg-gray-50 rounded border border-gray-200">
+                        <div className="text-xs text-gray-500 text-center py-2">No board data</div>
+                      </div>
+                    );
+                  }
+
+                  // Deserialize game state - use game-specific deserialization
+                  let currentState;
+                  if (gameId === 'sudoku') {
+                    currentState = new SudokuState(currentStateStr);
+                  } else if (gameId === 'crossword') {
+                    currentState = CrosswordState.deserialize(currentStateStr);
+                  } else {
+                    return (
+                      <div className="mt-3 p-2 bg-gray-50 rounded border border-gray-200">
+                        <div className="text-xs text-gray-500 text-center py-2">Unknown game type</div>
+                      </div>
+                    );
+                  }
+
                   return (
                     <div className="mt-3 p-2 bg-gray-50 rounded border border-gray-200">
-                      <div className="text-xs text-gray-500 text-center py-2">No board data</div>
+                      {game.getRenderer().renderMiniBoard({
+                        playerName: player.name,
+                        initialState: currentState,
+                        currentState,
+                        solution: currentState,
+                        showErrors: false,
+                        isWinner,
+                        finalScore: player.finalScore,
+                        completionPercentage
+                      })}
+                    </div>
+                  );
+                } catch (error) {
+                  console.error('Error rendering peep board:', error);
+                  return (
+                    <div className="mt-3 p-2 bg-red-50 rounded border border-red-200">
+                      <div className="text-xs text-red-600 text-center py-2">Error loading board</div>
                     </div>
                   );
                 }
-
-                // Deserialize game state - use game-specific deserialization
-                // For Sudoku, we can create state from string directly
-                const currentState = new SudokuState(currentStateStr);
-
-                return (
-                  <div className="mt-3 p-2 bg-gray-50 rounded border border-gray-200">
-                    {game.getRenderer().renderMiniBoard({
-                      playerName: player.name,
-                      initialState: currentState,
-                      currentState,
-                      solution: currentState,
-                      showErrors: false,
-                      isWinner,
-                      finalScore: player.finalScore,
-                      completionPercentage
-                    })}
-                  </div>
-                );
-              } catch (error) {
-                console.error('Error rendering mini board:', error);
-                return (
-                  <div className="mt-3 p-2 bg-gray-50 rounded border border-gray-200">
-                    <div className="text-xs text-red-500 text-center py-2">Error loading board</div>
-                  </div>
-                );
-              }
-            })()}
-          </div>
-        );
-      })}
+              })()}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 };

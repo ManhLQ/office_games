@@ -152,19 +152,19 @@ export const CrosswordMiniBoard: React.FC<MiniBoardProps> = (props) => {
   const size = crosswordState.getSize();
 
   return (
-    <div className="crossword-mini-board bg-white p-2 rounded border-2 border-gray-800 inline-block">
+    <div className="crossword-mini-board bg-white p-3 rounded border-2 border-gray-800 inline-block">
       <div
         className="inline-grid gap-0"
         style={{
-          gridTemplateColumns: `repeat(${size}, 8px)`,
-          gridTemplateRows: `repeat(${size}, 8px)`
+          gridTemplateColumns: `repeat(${size}, 16px)`,
+          gridTemplateRows: `repeat(${size}, 16px)`
         }}
       >
         {grid.flat().map((cell, i) => (
           <div
             key={i}
             className={cell === '#' ? 'bg-gray-900' : (cell ? 'bg-blue-600' : 'bg-white')}
-            style={{ width: '8px', height: '8px', border: '1px solid #ccc' }}
+            style={{ width: '16px', height: '16px', border: '1px solid #ccc' }}
           />
         ))}
       </div>

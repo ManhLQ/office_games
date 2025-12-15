@@ -84,4 +84,9 @@ export interface IGame {
    * @returns Game-specific renderer instance
    */
   getRenderer(): IGameRenderer;
+
+  /**
+   * Get the powerup handler for this game
+   */
+  getPowerupHandler(): import('./IPowerupHandler').IPowerupHandler;
 }

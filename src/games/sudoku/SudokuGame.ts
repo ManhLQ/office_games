@@ -3,10 +3,12 @@ import type { IGameConfig } from '../core/interfaces/IGameConfig';
 import type { IGameState } from '../core/interfaces/IGameState';
 import type { IGameMove } from '../core/interfaces/IGameMove';
 import type { IGameRenderer } from '../core/interfaces/IGameRenderer';
+import type { IPowerupHandler } from '../core/interfaces/IPowerupHandler';
 import type { Difficulty } from '../../types';
 import { SudokuState } from './SudokuState';
 import { SudokuMove } from './SudokuMove';
 import { SudokuRenderer } from './components/SudokuRenderer';
+import { SudokuPowerupHandler } from './SudokuPowerupHandler';
 import {
   generateSudokuBoard,
   validateSudokuBoard,
@@ -136,6 +138,13 @@ export class SudokuGame implements IGame {
    */
   getRenderer(): IGameRenderer {
     return new SudokuRenderer();
+  }
+
+  /**
+   * Get the powerup handler for this game
+   */
+  getPowerupHandler(): IPowerupHandler {
+    return new SudokuPowerupHandler();
   }
 
   // ===== Helper methods =====

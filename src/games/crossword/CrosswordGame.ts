@@ -6,6 +6,7 @@ import type { IGameRenderer } from '../core/interfaces/IGameRenderer';
 import { CrosswordState } from './CrosswordState';
 import { CrosswordMove } from './CrosswordMove';
 import { CrosswordRenderer } from './components/CrosswordRenderer';
+import { CrosswordPowerupHandler } from './CrosswordPowerupHandler';
 import { loadPuzzle } from './utils/puzzleLoader';
 import { createEmptyGrid, getCrosswordCompletionPercentage, validateCrosswordBoard } from './utils/crosswordLogic';
 import type { Difficulty } from './types';
@@ -141,5 +142,12 @@ export class CrosswordGame implements IGame {
    */
   getRenderer(): IGameRenderer {
     return new CrosswordRenderer();
+  }
+
+  /**
+   * Get the powerup handler for this game
+   */
+  getPowerupHandler(): import('../core/interfaces/IPowerupHandler').IPowerupHandler {
+    return new CrosswordPowerupHandler();
   }
 }

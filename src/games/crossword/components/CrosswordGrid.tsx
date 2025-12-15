@@ -6,7 +6,7 @@ interface CrosswordGridProps {
   state: CrosswordState;
   selectedCell: { row: number; col: number } | null;
   highlightedCells: { row: number; col: number }[];
-  hintCell: { row: number; col: number } | null;
+  hintCell: { row: number; col: number; value?: string | number } | null;
   onCellClick: (row: number, col: number) => void;
 }
 
@@ -57,20 +57,25 @@ export const CrosswordGrid: React.FC<CrosswordGridProps> = ({
       }}
     >
       {grid.map((row, rowIndex) =>
-        row.map((cell, colIndex) => (
-          <CrosswordCell
-            key={`${rowIndex}-${colIndex}`}
-            row={rowIndex}
-            col={colIndex}
-            value={cell}
-            number={cellNumbers.get(`${rowIndex},${colIndex}`)}
-            isSelected={selectedCell?.row === rowIndex && selectedCell?.col === colIndex}
-            isHighlighted={isHighlighted(rowIndex, colIndex)}
-            isHint={hintCell?.row === rowIndex && hintCell?.col === colIndex}
-            isBlack={cell === '#'}
-            onClick={onCellClick}
-          />
-        ))
+        row.map((cell, colIndex) => {
+          const isHintCell = hintCell?.row === rowIndex && hintCell?.col === colIndex;
+          const displayValue = isHintCell && hintCell.value ? String(hintCell.value) : cell;
+
+          return (
+            <CrosswordCell
+              key={`${rowIndex}-${colIndex}`}
+              row={rowIndex}
+              col={colIndex}
+              value={displayValue}
+              number={cellNumbers.get(`${rowIndex},${colIndex}`)}
+              isSelected={selectedCell?.row === rowIndex && selectedCell?.col === colIndex}
+              isHighlighted={isHighlighted(rowIndex, colIndex)}
+              isHint={isHintCell}
+              isBlack={cell === '#'}
+              onClick={onCellClick}
+            />
+          );
+        })
       )}
     </div>
   );

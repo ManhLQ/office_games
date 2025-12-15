@@ -103,7 +103,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
 
   const {
     activePowerup,
-    handleUsePowerup,
+    handleUsePowerup: baseHandleUsePowerup,
     getPowerupCount
   } = usePowerupEffects({
     roomCode,
@@ -114,68 +114,71 @@ export const GameBoard: React.FC<GameBoardProps> = ({
     isGlobalMode
   });
 
-  const [hintCell, setHintCell] = useState<{ row: number; col: number; value: number } | null>(null);
+  // Wrap handleUsePowerup to add validation for hint
+  const handleUsePowerup = useCallback(async (type: PowerupType) => {
+    // For hint powerup, validate that a cell is selected
+    if (type === 'hint') {
+      const handler = game.getPowerupHandler();
+      const powerup = { id: 'hint', name: 'Hint', icon: '💡', description: '', duration: null, scope: 'self' as const, color: '' };
 
-  // Calculate hint cell when hint powerup is active
+      const canActivate = handler.canActivate(powerup, currentState, {
+        playerId,
+        roomCode,
+        selectedCell: selectedCell || undefined,
+        players
+      });
+
+      if (!canActivate) {
+        alert('Please select a cell first to use the hint powerup!');
+        return;
+      }
+    }
+
+    // Call the base handler
+    await baseHandleUsePowerup(type);
+  }, [baseHandleUsePowerup, game, currentState, selectedCell, playerId, roomCode, players]);
+
+  // Get powerup counts
+  const powerupCounts: Record<PowerupType, number> = {
+    hint: getPowerupCount('hint'),
+    fog: getPowerupCount('fog'),
+    peep: getPowerupCount('peep')
+  };
+
+  const [hintCell, setHintCell] = useState<{ row: number; col: number; value: number | string } | null>(null);
+
+  // Calculate hint cell ONCE when hint powerup is activated
   useEffect(() => {
-    if (!activePowerup || activePowerup.type !== 'hint' || !selectedCell) {
+    if (!activePowerup || activePowerup.type !== 'hint') {
       setHintCell(null);
       return;
     }
 
-    // Only calculate hint for Sudoku (has getGrid method returning number[][])
-    // For other games, hint powerup will work differently
-    if (game.id !== 'sudoku') {
-      setHintCell(null);
-      return;
-    }
+    // Only calculate if we don't already have a hint cell
+    if (hintCell) return;
 
-    // Sudoku-specific hint logic
-    const currentGrid = (currentState as SudokuState).getGrid();
-    const initialGrid = (initialState as SudokuState).getGrid();
-    const solutionGrid = (solution as SudokuState).getGrid();
+    // Use game's powerup handler to calculate hint
+    const handler = game.getPowerupHandler();
+    const powerup = { id: 'hint', name: 'Hint', icon: '💡', description: '', duration: null, scope: 'self' as const, color: '' };
 
-    if (!currentGrid || !initialGrid || !solutionGrid) {
-      setHintCell(null);
-      return;
-    }
+    const result = handler.activate(
+      powerup,
+      currentState,
+      {
+        playerId,
+        roomCode,
+        selectedCell: selectedCell || undefined,
+        players
+      },
+      solution
+    );
 
-    // Check if selected cell is empty and editable
-    const isSelectedEmpty = selectedCell &&
-      initialGrid[selectedCell.row][selectedCell.col] === 0 &&
-      currentGrid[selectedCell.row][selectedCell.col] === 0;
-
-    let calculatedHintCell;
-    if (isSelectedEmpty && selectedCell) {
-      // Show hint at selected empty cell
-      calculatedHintCell = {
-        row: selectedCell.row,
-        col: selectedCell.col,
-        value: solutionGrid[selectedCell.row][selectedCell.col]
-      };
+    if (result.success && result.hintCell) {
+      setHintCell(result.hintCell);
     } else {
-      // Find all empty editable cells
-      const emptyCells: Array<{ row: number, col: number }> = [];
-      for (let r = 0; r < 9; r++) {
-        for (let c = 0; c < 9; c++) {
-          if (initialGrid[r][c] === 0 && currentGrid[r][c] === 0) {
-            emptyCells.push({ row: r, col: c });
-          }
-        }
-      }
-
-      if (emptyCells.length > 0) {
-        const randomCell = emptyCells[Math.floor(Math.random() * emptyCells.length)];
-        calculatedHintCell = {
-          row: randomCell.row,
-          col: randomCell.col,
-          value: solutionGrid[randomCell.row][randomCell.col]
-        };
-      }
+      setHintCell(null);
     }
-
-    setHintCell(calculatedHintCell || null);
-  }, [activePowerup, selectedCell, currentState, initialState, solution, game.id]);
+  }, [activePowerup, game, currentState, selectedCell, players, solution, playerId, roomCode, hintCell]);
 
   // Update Firebase with the calculated hint cell when it changes
   useEffect(() => {
@@ -228,14 +231,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
     }
   }, [selectedCell, onMove, initialState]);
 
-  // Get powerup counts
-  const powerupCounts: Record<PowerupType, number> = {
-    hint: getPowerupCount('hint'),
-    fog: getPowerupCount('fog'),
-    peep: getPowerupCount('peep')
-  };
-
-  // Check if peep mode is active
+  // Peep mode - show competitor boards when peep powerup is active
   const isPeepMode = activePowerup?.type === 'peep';
 
   // Check if fog is affecting this player (someone else used fog on them)
@@ -319,7 +315,6 @@ export const GameBoard: React.FC<GameBoardProps> = ({
                   powerupCounts={powerupCounts}
                   activePowerup={activePowerup}
                   onUsePowerup={handleUsePowerup}
-                  disabled={hasExpired}
                 />
               </div>
             )}
@@ -330,6 +325,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
                 currentPlayerId={playerId}
                 players={players}
                 game={game}
+                gameId={game.id}
                 isPeepMode={isPeepMode}
               />
             </div>
