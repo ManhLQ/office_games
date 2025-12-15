@@ -1,0 +1,218 @@
+{
+  "size": 7,
+  "grid": [
+    [
+      "C",
+      "A",
+      "T",
+      "#",
+      "D",
+      "O",
+      "G"
+    ],
+    [
+      "A",
+      "#",
+      "O",
+      "#",
+      "A",
+      "#",
+      "O"
+    ],
+    [
+      "R",
+      "E",
+      "D",
+      "#",
+      "Y",
+      "#",
+      "T"
+    ],
+    [
+      "#",
+      "#",
+      "#",
+      "B",
+      "#",
+      "#",
+      "#"
+    ],
+    [
+      "B",
+      "#",
+      "S",
+      "U",
+      "N",
+      "#",
+      "A"
+    ],
+    [
+      "A",
+      "#",
+      "T",
+      "#",
+      "E",
+      "#",
+      "X"
+    ],
+    [
+      "T",
+      "E",
+      "A",
+      "#",
+      "W",
+      "E",
+      "T"
+    ]
+  ],
+  "clues": {
+    "across": [
+      {
+        "number": 1,
+        "clue": "Feline pet",
+        "answer": "CAT",
+        "row": 0,
+        "col": 0,
+        "length": 3
+      },
+      {
+        "number": 4,
+        "clue": "Canine pet",
+        "answer": "DOG",
+        "row": 0,
+        "col": 4,
+        "length": 3
+      },
+      {
+        "number": 5,
+        "clue": "Automobile",
+        "answer": "CAR",
+        "row": 1,
+        "col": 0,
+        "length": 1
+      },
+      {
+        "number": 7,
+        "clue": "Color of blood",
+        "answer": "RED",
+        "row": 2,
+        "col": 0,
+        "length": 3
+      },
+      {
+        "number": 9,
+        "clue": "Opposite of night",
+        "answer": "DAY",
+        "row": 2,
+        "col": 4,
+        "length": 1
+      },
+      {
+        "number": 11,
+        "clue": "Flying mammal",
+        "answer": "BAT",
+        "row": 4,
+        "col": 0,
+        "length": 1
+      },
+      {
+        "number": 12,
+        "clue": "Star in our solar system",
+        "answer": "SUN",
+        "row": 4,
+        "col": 2,
+        "length": 3
+      },
+      {
+        "number": 15,
+        "clue": "Hot beverage",
+        "answer": "TEA",
+        "row": 6,
+        "col": 0,
+        "length": 3
+      },
+      {
+        "number": 16,
+        "clue": "Opposite of dry",
+        "answer": "WET",
+        "row": 6,
+        "col": 4,
+        "length": 3
+      }
+    ],
+    "down": [
+      {
+        "number": 1,
+        "clue": "Automobile",
+        "answer": "CAR",
+        "row": 0,
+        "col": 0,
+        "length": 3
+      },
+      {
+        "number": 2,
+        "clue": "Consume food",
+        "answer": "ATE",
+        "row": 0,
+        "col": 1,
+        "length": 3
+      },
+      {
+        "number": 3,
+        "clue": "Opposite of bottom",
+        "answer": "TOP",
+        "row": 0,
+        "col": 2,
+        "length": 3
+      },
+      {
+        "number": 4,
+        "clue": "24 hours",
+        "answer": "DAY",
+        "row": 0,
+        "col": 4,
+        "length": 3
+      },
+      {
+        "number": 6,
+        "clue": "Opposite of yes",
+        "answer": "NO",
+        "row": 0,
+        "col": 5,
+        "length": 2
+      },
+      {
+        "number": 8,
+        "clue": "Opposite of out",
+        "answer": "IN",
+        "row": 0,
+        "col": 6,
+        "length": 2
+      },
+      {
+        "number": 10,
+        "clue": "Large body of water",
+        "answer": "SEA",
+        "row": 1,
+        "col": 2,
+        "length": 3
+      },
+      {
+        "number": 13,
+        "clue": "Opposite of old",
+        "answer": "NEW",
+        "row": 4,
+        "col": 4,
+        "length": 3
+      },
+      {
+        "number": 14,
+        "clue": "Levy",
+        "answer": "TAX",
+        "row": 4,
+        "col": 6,
+        "length": 3
+      }
+    ]
+  }
+}

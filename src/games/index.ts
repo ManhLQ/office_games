@@ -5,6 +5,7 @@
 
 // Import Sudoku game (auto-registers)
 import './sudoku';
+import './crossword';
 
 // Add more games here as they're implemented
 // import './chess';
